@@ -17,15 +17,6 @@ from typing import List
 
 import setuptools
 
-repo_root = pathlib.Path(__file__).parent
-
-__version__ = ""
-with open(repo_root / "benchalerts" / "_version.py", "r") as f:
-    exec(f.read())  # should only overwrite the __version__ variable
-
-with open(repo_root / "README.md", "r") as f:
-    long_description = f.read()
-
 
 def read_requirements_file(filepath: pathlib.Path) -> List[str]:
     """Parse a requirements.txt file into a list of package requirements"""
@@ -35,6 +26,15 @@ def read_requirements_file(filepath: pathlib.Path) -> List[str]:
         ]
     return requirements
 
+
+repo_root = pathlib.Path(__file__).parent
+
+__version__ = ""
+with open(repo_root / "benchalerts" / "_version.py", "r") as f:
+    exec(f.read())  # should only overwrite the __version__ variable
+
+with open(repo_root / "README.md", "r") as f:
+    long_description = f.read()
 
 base_requirements = read_requirements_file(repo_root / "requirements.txt")
 dev_requirements = read_requirements_file(repo_root / "requirements-dev.txt")
