@@ -18,8 +18,8 @@ After making changes, run tests:
 
     pytest tests/
 
-`pre-commit` should automatically lint your code before a commit, but you can always
-lint manually by running
+Code is linted with `black`, `flake8`, and `isort`. `pre-commit` should automatically
+lint your code before a commit, but you can always lint manually by running
 
     pre-commit run --all-files
 
