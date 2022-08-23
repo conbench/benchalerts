@@ -13,27 +13,32 @@
 # limitations under the License.
 
 import pathlib
+from typing import List
 
 import setuptools
 
 repo_root = pathlib.Path(__file__).parent
 
+__version__ = ""
+with open(repo_root / "benchalerts" / "_version.py", "r") as f:
+    exec(f.read())  # should only overwrite the __version__ variable
+
 with open(repo_root / "README.md", "r") as f:
     long_description = f.read()
 
-with open(repo_root / "requirements.txt", "r") as f:
-    base_requirements = [
-        line.strip() for line in f if line.strip() and not line.startswith("#")
-    ]
 
-with open(repo_root / "requirements-dev.txt", "r") as f:
-    dev_requirements = [
-        line.strip() for line in f if line.strip() and not line.startswith("#")
-    ]
+def read_requirements_file(filepath: pathlib.Path) -> List[str]:
+    """Parse a requirements.txt file into a list of package requirements"""
+    with open(filepath, "r") as f:
+        requirements = [
+            line.strip() for line in f if line.strip() and not line.startswith("#")
+        ]
+    return requirements
 
-__version__ = ""
-with open(repo_root / "benchalerts" / "_version.py", "r") as f:
-    exec(f.read())  # only populates the __version__ variable
+
+base_requirements = read_requirements_file(repo_root / "requirements.txt")
+dev_requirements = read_requirements_file(repo_root / "requirements-dev.txt")
+
 
 setuptools.setup(
     name="benchalerts",
