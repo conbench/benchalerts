@@ -31,7 +31,7 @@ repo_root = pathlib.Path(__file__).parent
 
 __version__ = ""
 with open(repo_root / "benchalerts" / "_version.py", "r") as f:
-    exec(f.read())  # should only overwrite the __version__ variable
+    exec(f.read())  # only overwrites the __version__ variable
 
 with open(repo_root / "README.md", "r") as f:
     long_description = f.read()
