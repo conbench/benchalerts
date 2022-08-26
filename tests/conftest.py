@@ -12,5 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-requests
-urllib3
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def ci_env_var(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CI", "true")
