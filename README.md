@@ -19,8 +19,8 @@ After making changes, run tests:
     pytest tests/
 
 This will run both unit and integration tests, but integration tests will be skipped if
-the correct environment variables are not set. Look at the source files to see which
-ones those are.
+the correct environment variables are not set. See `tests/integration_tests/README.md`
+for instructions.
 
 Code is linted with `black`, `flake8`, and `isort`. `pre-commit` should automatically
 lint your code before a commit, but you can always lint manually by running
