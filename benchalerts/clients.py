@@ -35,7 +35,7 @@ class _BaseClient(abc.ABC):
             status_forcelist=frozenset((429, 502, 503, 504)),
             backoff_factor=4,  # will retry in 2, 4, 8, 16, 32 seconds
         )
-        if os.getenv("CI"):
+        if os.getenv("UNIT_TESTING"):
             from tests.mocks import MockAdapter
 
             adapter = MockAdapter()
@@ -43,7 +43,6 @@ class _BaseClient(abc.ABC):
             adapter = HTTPAdapter(max_retries=retry_strategy)
 
         self.session = requests.Session()
-        self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
     def get(self, path: str) -> dict:
@@ -152,7 +151,6 @@ class ConbenchClient(_BaseClient):
 
         super().__init__()
         self.base_url = server_url + "/api"
-        self.session.headers = {"Content-Type": "application/json"}
         self.post("/login/", json=login_creds)
 
     def get_comparison_to_baseline(self, contender_sha: str) -> list:
@@ -198,3 +196,9 @@ class ConbenchClient(_BaseClient):
         )
 
         return comparison
+
+
+if __name__ == "__main__":
+    log.setLevel("DEBUG")
+    cb = ConbenchClient("https://velox-conbench.voltrondata.run/")
+    print(cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c"))

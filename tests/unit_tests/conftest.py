@@ -17,4 +17,4 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def ci_env_var(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("CI", "true")
+    monkeypatch.setenv("UNIT_TESTING", "true")
