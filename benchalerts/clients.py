@@ -196,9 +196,3 @@ class ConbenchClient(_BaseClient):
         )
 
         return comparison
-
-
-if __name__ == "__main__":
-    log.setLevel("DEBUG")
-    cb = ConbenchClient("https://velox-conbench.voltrondata.run/")
-    print(cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c"))
