@@ -1,8 +1,18 @@
-These tests will post to a Github PR and read from Velox Conbench. To run them, you
-need these environment variables set. Otherwise, they will be skipped.
+Integration tests
+-----------------
 
-- `GITHUB_API_TOKEN` - an API token that can post to https://github.com/austin3dickey/austin-games/pull/1
-- `CONBENCH_EMAIL` and `CONBENCH_PASSWORD` - login information to https://velox-conbench.voltrondata.run
+These tests will interact with various services like Github and Conbench. To run them,
+you need these environment variables set. If they are not set correctly, the
+corresponding tests will be skipped.
+
+To run tests that post comments to pull requests:
+
+- `GITHUB_API_TOKEN` - an API token that can post to https://github.com/conbench/benchalerts/pull/5
+- `CI` - this env var must NOT be set, or the tests will be skipped. By default,
+    `CI=true` in Github Actions, so we'll never run these tests in the CI build.
+
+License information
+-------------------
 
 Copyright (c) 2022, Voltron Data.
 

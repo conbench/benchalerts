@@ -26,9 +26,9 @@ def test_create_pull_request_comment():
     if not os.getenv("GITHUB_API_TOKEN"):
         pytest.skip("GITHUB_API_TOKEN env var missing")
 
-    gh = GithubRepoClient("austin3dickey/austin-games")
+    gh = GithubRepoClient("conbench/benchalerts")
     res = gh.create_pull_request_comment(
-        "posted from an integration test", commit_sha="7d9a3be"
+        "posted from an integration test", commit_sha="adc9b73"
     )
     assert res
 
@@ -41,9 +41,6 @@ def test_create_pull_request_comment():
     ],
 )
 def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch, conbench_url: str):
-    if not os.getenv("CONBENCH_PASSWORD"):
-        pytest.skip("CONBENCH_PASSWORD env var missing")
-
     monkeypatch.setenv("CONBENCH_URL", conbench_url)
     cb = ConbenchClient()
     res = cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c")

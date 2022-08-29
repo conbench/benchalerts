@@ -53,7 +53,7 @@ class MockAdapter(HTTPAdapter):
                     clean_path = clean_path[:-1]
                 return base_name + "_" + clean_path if clean_path else base_name
 
-        raise Exception("No base URL was mocked for this request!")
+        raise Exception(f"No base URL was mocked for this request: {url}")
 
     def send(self, *args, **kwargs):
         req: requests.PreparedRequest = args[0]
