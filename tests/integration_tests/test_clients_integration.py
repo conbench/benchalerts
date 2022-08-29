@@ -33,11 +33,18 @@ def test_create_pull_request_comment():
     assert res
 
 
-def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.parametrize(
+    "conbench_url",
+    [
+        "https://velox-conbench.voltrondata.run",
+        "https://velox-conbench.voltrondata.run/",
+    ],
+)
+def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch, conbench_url: str):
     if not os.getenv("CONBENCH_PASSWORD"):
         pytest.skip("CONBENCH_PASSWORD env var missing")
 
-    monkeypatch.setenv("CONBENCH_URL", "https://velox-conbench.voltrondata.run")
+    monkeypatch.setenv("CONBENCH_URL", conbench_url)
     cb = ConbenchClient()
     res = cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c")
     assert len(res) == 80, f"actual len(res) is {len(res)}"
