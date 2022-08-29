@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import pytest
+from mocks import MockAdapter
 
 from benchalerts.clients import ConbenchClient, GithubRepoClient
-
-MOCKED_REPO = "some/repo"
-MOCKED_CB_URL = "https://conbench.biz"
 
 
 @pytest.fixture
@@ -32,63 +30,65 @@ def missing_github_env(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture
 def conbench_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CONBENCH_URL", "https://conbench.biz")
     monkeypatch.setenv("CONBENCH_EMAIL", "email")
     monkeypatch.setenv("CONBENCH_PASSWORD", "password")
 
 
 @pytest.fixture
 def missing_conbench_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("CONBENCH_URL", raising=False)
     monkeypatch.delenv("CONBENCH_EMAIL", raising=False)
     monkeypatch.delenv("CONBENCH_PASSWORD", raising=False)
 
 
 class TestGithubRepoClient:
+    @property
+    def gh(self):
+        return GithubRepoClient("some/repo", adapter=MockAdapter())
+
     def test_github_fails_missing_env(self, missing_github_env):
         with pytest.raises(ValueError, match="GITHUB_API_TOKEN"):
-            GithubRepoClient(MOCKED_REPO)
+            self.gh
 
     def test_create_pull_request_comment_with_number(self, github_env):
-        gh = GithubRepoClient(MOCKED_REPO)
-        output = gh.create_pull_request_comment(comment="test", pull_number=1347)
+        output = self.gh.create_pull_request_comment(comment="test", pull_number=1347)
         assert output
 
     def test_create_pull_request_comment_with_sha(self, github_env):
-        gh = GithubRepoClient(MOCKED_REPO)
-        output = gh.create_pull_request_comment(comment="test", commit_sha="abc")
+        output = self.gh.create_pull_request_comment(comment="test", commit_sha="abc")
         assert output
 
     def test_create_pull_request_comment_bad_input(self, github_env):
-        gh = GithubRepoClient(MOCKED_REPO)
-        with pytest.raises(ValueError, match="specify"):
-            gh.create_pull_request_comment(comment="test")
+        with pytest.raises(ValueError, match="missing"):
+            self.gh.create_pull_request_comment(comment="test")
 
     def test_comment_with_sha_fails_with_no_matching_prs(self, github_env):
-        gh = GithubRepoClient(MOCKED_REPO)
         with pytest.raises(ValueError, match="pull request"):
-            gh.create_pull_request_comment(comment="test", commit_sha="no_prs")
+            self.gh.create_pull_request_comment(comment="test", commit_sha="no_prs")
 
 
 class TestConbenchClient:
+    @property
+    def cb(self):
+        return ConbenchClient(adapter=MockAdapter())
+
     def test_conbench_fails_missing_env(self, missing_conbench_env):
-        with pytest.raises(ValueError, match="CONBENCH_EMAIL"):
-            ConbenchClient(MOCKED_CB_URL)
+        with pytest.raises(ValueError, match="CONBENCH_URL"):
+            self.cb
 
     def test_get_comparison_to_baseline(self, conbench_env):
-        cb = ConbenchClient(MOCKED_CB_URL)
-        output = cb.get_comparison_to_baseline("abc")
+        output = self.cb.get_comparison_to_baseline("abc")
         assert output
 
     def test_comparison_fails_when_no_commits(self, conbench_env):
-        cb = ConbenchClient(MOCKED_CB_URL)
         with pytest.raises(ValueError, match="commits"):
-            cb.get_comparison_to_baseline("no_commits")
+            self.cb.get_comparison_to_baseline("no_commits")
 
     def test_comparison_fails_when_no_baseline(self, conbench_env):
-        cb = ConbenchClient(MOCKED_CB_URL)
         with pytest.raises(ValueError, match="baseline"):
-            cb.get_comparison_to_baseline("no_baseline")
+            self.cb.get_comparison_to_baseline("no_baseline")
 
     def test_comparison_fails_when_no_runs(self, conbench_env):
-        cb = ConbenchClient(MOCKED_CB_URL)
         with pytest.raises(ValueError, match="runs"):
-            cb.get_comparison_to_baseline("no_runs")
+            self.cb.get_comparison_to_baseline("no_runs")

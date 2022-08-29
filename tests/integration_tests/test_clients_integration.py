@@ -20,6 +20,9 @@ from benchalerts.clients import ConbenchClient, GithubRepoClient
 
 
 def test_create_pull_request_comment():
+    if os.getenv("CI"):
+        pytest.skip("Don't post a PR comment from CI")
+
     if not os.getenv("GITHUB_API_TOKEN"):
         pytest.skip("GITHUB_API_TOKEN env var missing")
 
@@ -30,10 +33,11 @@ def test_create_pull_request_comment():
     assert res
 
 
-def test_get_comparison_to_baseline():
+def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch):
     if not os.getenv("CONBENCH_PASSWORD"):
         pytest.skip("CONBENCH_PASSWORD env var missing")
 
-    cb = ConbenchClient("https://velox-conbench.voltrondata.run")
+    monkeypatch.setenv("CONBENCH_URL", "https://velox-conbench.voltrondata.run")
+    cb = ConbenchClient()
     res = cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c")
     assert len(res) == 80, f"actual len(res) is {len(res)}"

@@ -24,38 +24,41 @@ from .log import fatal_and_log, log
 
 
 class _BaseClient(abc.ABC):
-    """A client to interact with an API."""
+    """A client to interact with an API.
+
+    Parameters
+    ----------
+    adapter
+        A requests adapter to mount to the requests session. If not given, one will be
+        created with a backoff retry strategy.
+    """
 
     base_url: str
     timeout_s = 10
 
-    def __init__(self):
-        retry_strategy = Retry(
-            total=5,
-            status_forcelist=frozenset((429, 502, 503, 504)),
-            backoff_factor=4,  # will retry in 2, 4, 8, 16, 32 seconds
-        )
-        if os.getenv("UNIT_TESTING"):
-            from tests.mocks import MockAdapter
-
-            adapter = MockAdapter()
-        else:
+    def __init__(self, adapter: Optional[HTTPAdapter]):
+        if not adapter:
+            retry_strategy = Retry(
+                total=5,
+                status_forcelist=frozenset((429, 502, 503, 504)),
+                backoff_factor=4,  # will retry in 2, 4, 8, 16, 32 seconds
+            )
             adapter = HTTPAdapter(max_retries=retry_strategy)
 
         self.session = requests.Session()
         self.session.mount("https://", adapter)
 
     def get(self, path: str) -> dict:
-        log.debug(f"GET {self.base_url}{path}")
-        res = self.session.get(url=self.base_url + path, timeout=self.timeout_s)
+        url = self.base_url + path
+        log.debug(f"GET {url}")
+        res = self.session.get(url=url, timeout=self.timeout_s)
         res.raise_for_status()
         return res.json()
 
     def post(self, path: str, json: dict) -> Optional[dict]:
-        log.debug(f"POST {self.base_url}{path} {json}")
-        res = self.session.post(
-            url=self.base_url + path, json=json, timeout=self.timeout_s
-        )
+        url = self.base_url + path
+        log.debug(f"POST {url} {json}")
+        res = self.session.post(url=url, json=json, timeout=self.timeout_s)
         res.raise_for_status()
         if res.content:
             return res.json()
@@ -68,6 +71,9 @@ class GithubRepoClient(_BaseClient):
     ----------
     repo
         The repo name, in the form 'owner/repo'.
+    adapter
+        A requests adapter to mount to the requests session. If not given, one will be
+        created with a backoff retry strategy.
 
     Environment variables
     ---------------------
@@ -75,12 +81,12 @@ class GithubRepoClient(_BaseClient):
         A Github API token with ``repo`` access.
     """
 
-    def __init__(self, repo: str):
+    def __init__(self, repo: str, adapter: Optional[HTTPAdapter] = None):
         token = os.getenv("GITHUB_API_TOKEN")
         if not token:
             fatal_and_log("Environment variable GITHUB_API_TOKEN not found")
 
-        super().__init__()
+        super().__init__(adapter=adapter)
         self.session.headers = {"Authorization": f"Bearer {token}"}
         self.base_url = f"https://api.github.com/repos/{repo}"
 
@@ -104,6 +110,9 @@ class GithubRepoClient(_BaseClient):
             The SHA of a commit associated with the pull request. Specify either this
             or ``pull_number``.
         """
+        if not pull_number and not commit_sha:
+            fatal_and_log("pull_number and commit_sha are both missing")
+
         if commit_sha:
             pull_numbers = [
                 pull["number"] for pull in self.get(f"/commits/{commit_sha}/pulls")
@@ -114,8 +123,6 @@ class GithubRepoClient(_BaseClient):
                     f"'{commit_sha}'. Found {pull_numbers}."
                 )
             pull_number = pull_numbers[0]
-        elif not pull_number:
-            fatal_and_log("Either specify pull_number or commit_sha")
 
         log.info(
             f"Posting the following message to pull request #{pull_number}:\n\n"
@@ -129,19 +136,23 @@ class ConbenchClient(_BaseClient):
 
     Parameters
     ----------
-    server_url
-        The URL to access the Conbench UI.
+    adapter
+        A requests adapter to mount to the requests session. If not given, one will be
+        created with a backoff retry strategy.
 
     Environment variables
     ---------------------
+    CONBENCH_URL
+        The URL of the Conbench server.
     CONBENCH_EMAIL
         The email to use for Conbench login.
     CONBENCH_PASSWORD
         The password to use for Conbench login.
     """
 
-    def __init__(self, server_url: str):
+    def __init__(self, adapter: Optional[HTTPAdapter] = None):
         login_creds = {
+            "url": os.getenv("CONBENCH_URL"),
             "email": os.getenv("CONBENCH_EMAIL"),
             "password": os.getenv("CONBENCH_PASSWORD"),
         }
@@ -149,8 +160,8 @@ class ConbenchClient(_BaseClient):
             if not login_creds[cred]:
                 fatal_and_log(f"Environment variable CONBENCH_{cred.upper()} not found")
 
-        super().__init__()
-        self.base_url = server_url + "/api"
+        super().__init__(adapter=adapter)
+        self.base_url = login_creds.pop("url") + "/api"
         self.post("/login/", json=login_creds)
 
     def get_comparison_to_baseline(self, contender_sha: str) -> list:
