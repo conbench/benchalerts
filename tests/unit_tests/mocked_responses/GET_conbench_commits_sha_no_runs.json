@@ -1,0 +1,22 @@
+{
+    "status_code": 200,
+    "data": [
+        {
+            "author_avatar": "https://avatars.githubusercontent.com/u/878798?v=4",
+            "author_login": "dianaclarke",
+            "author_name": "Diana Clarke",
+            "id": "some-commit-uuid-1",
+            "links": {
+                "list": "http://localhost/api/commits/",
+                "parent": "http://localhost/api/commits/some-commit-parent-uuid-1/",
+                "self": "http://localhost/api/commits/some-commit-uuid-1/"
+            },
+            "message": "ARROW-11771: [Developer][Archery] Move benchmark tests (so CI runs them)",
+            "parent_sha": "123",
+            "repository": "https://github.com/apache/arrow",
+            "sha": "02addad336ba19a654f9c857ede546331be7b631",
+            "timestamp": "2021-02-25T01:02:51",
+            "url": "https://github.com/apache/arrow/commit/02addad336ba19a654f9c857ede546331be7b631"
+        }
+    ]
+}
