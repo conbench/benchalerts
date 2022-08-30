@@ -53,11 +53,11 @@ class TestGithubRepoClient:
 
     def test_create_pull_request_comment_with_number(self, github_env):
         output = self.gh.create_pull_request_comment(comment="test", pull_number=1347)
-        assert output
+        assert output["body"] == "test"
 
     def test_create_pull_request_comment_with_sha(self, github_env):
         output = self.gh.create_pull_request_comment(comment="test", commit_sha="abc")
-        assert output
+        assert output["body"] == "test"
 
     def test_create_pull_request_comment_bad_input(self, github_env):
         with pytest.raises(ValueError, match="missing"):
@@ -79,7 +79,10 @@ class TestConbenchClient:
 
     def test_get_comparison_to_baseline(self, conbench_env):
         output = self.cb.get_comparison_to_baseline("abc")
-        assert output
+        assert isinstance(output, dict)
+        assert len(output) == 1
+        assert isinstance(output["101"], list)
+        assert len(output["101"]) == 2
 
     def test_comparison_fails_when_no_commits(self, conbench_env):
         with pytest.raises(ValueError, match="commits"):

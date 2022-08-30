@@ -165,15 +165,25 @@ class ConbenchClient(_BaseClient):
         if login_creds["email"] and login_creds["password"]:
             self.post("/login/", json=login_creds)
 
-    def get_comparison_to_baseline(self, contender_sha: str) -> list:
+    def get_comparison_to_baseline(self, contender_sha: str) -> dict:
         """Get benchmark comparisons between the given contender commit and its
         baseline commit.
 
         The baseline commit is defined by conbench, and it's typically the most recent
         ancestor of the contender commit that's on the default branch.
 
-        Note the contender_sha needs to match EXACTLY what conbench has stored;
-        typically 40 characters. It can't be a shortened version of the SHA.
+        Parameters
+        ----------
+        contender_sha
+            The SHA of the contender commit to compare. Needs to match EXACTLY what
+            conbench has stored; typically 40 characters. It can't be a shortened
+            version of the SHA.
+
+        Returns
+        -------
+        dict
+            A dict where keys are contender run_ids and values are lists of dicts
+            containing benchmark comparison information.
         """
         contender_info = self.get(f"/commits/?sha={contender_sha}")
         if len(contender_info) != 1:
@@ -191,20 +201,17 @@ class ConbenchClient(_BaseClient):
 
         commit_compare = self.get(f"/compare/commits/{baseline_sha}...{contender_sha}")
         all_runs = commit_compare["runs"]
-        if len(all_runs) == 0:
+        if not all_runs:
             fatal_and_log(
                 f"Contender commit '{contender_sha}' doesn't have any runs in conbench."
             )
-        elif len(all_runs) > 1:
-            fatal_and_log(
-                f"Contender commit '{contender_sha}' has {len(all_runs)} runs in "
-                "conbench. At this time, more than 1 run is not supported.",
-                etype=NotImplementedError,
+
+        comparisons = {}
+        log.info(f"Getting comparisons from {len(all_runs)} runs")
+        for run in all_runs:
+            comparison = self.get(
+                f"/compare/runs/{run['baseline']['run_id']}...{run['contender']['run_id']}"
             )
+            comparisons[run["contender"]["run_id"]] = comparison
 
-        run = all_runs[0]
-        comparison = self.get(
-            f"/compare/runs/{run['baseline']['run_id']}...{run['contender']['run_id']}"
-        )
-
-        return comparison
+        return comparisons

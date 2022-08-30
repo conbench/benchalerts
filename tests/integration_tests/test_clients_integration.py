@@ -23,9 +23,6 @@ def test_create_pull_request_comment():
     if os.getenv("CI"):
         pytest.skip("Don't post a PR comment from CI")
 
-    if not os.getenv("GITHUB_API_TOKEN"):
-        pytest.skip("GITHUB_API_TOKEN env var missing")
-
     gh = GithubRepoClient("conbench/benchalerts")
     res = gh.create_pull_request_comment(
         "posted from an integration test", commit_sha="adc9b73"
@@ -33,15 +30,11 @@ def test_create_pull_request_comment():
     assert res
 
 
-@pytest.mark.parametrize(
-    "conbench_url",
-    [
-        "https://velox-conbench.voltrondata.run",
-        "https://velox-conbench.voltrondata.run/",
-    ],
-)
-def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch, conbench_url: str):
-    monkeypatch.setenv("CONBENCH_URL", conbench_url)
+def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CONBENCH_URL", "https://conbench.ursa.dev/")
     cb = ConbenchClient()
-    res = cb.get_comparison_to_baseline("60538ad2f41fac3925490a366c06ab2e3cef193c")
-    assert len(res) == 80, f"actual len(res) is {len(res)}"
+    res = cb.get_comparison_to_baseline("bc7de406564fa7b2bcb9bf055cbaba31ca0ca124")
+    assert len(res) == 8
+    for comparison in res.values():
+        for benchmark in comparison:
+            assert benchmark["contender_run_id"]
