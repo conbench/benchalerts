@@ -18,30 +18,6 @@ from mocks import MockAdapter
 from benchalerts.clients import ConbenchClient, GithubRepoClient
 
 
-@pytest.fixture
-def github_env(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("GITHUB_API_TOKEN", "token")
-
-
-@pytest.fixture
-def missing_github_env(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("GITHUB_API_TOKEN", raising=False)
-
-
-@pytest.fixture
-def conbench_env(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("CONBENCH_URL", "https://conbench.biz")
-    monkeypatch.setenv("CONBENCH_EMAIL", "email")
-    monkeypatch.setenv("CONBENCH_PASSWORD", "password")
-
-
-@pytest.fixture
-def missing_conbench_env(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("CONBENCH_URL", raising=False)
-    monkeypatch.delenv("CONBENCH_EMAIL", raising=False)
-    monkeypatch.delenv("CONBENCH_PASSWORD", raising=False)
-
-
 class TestGithubRepoClient:
     @property
     def gh(self):
@@ -67,6 +43,26 @@ class TestGithubRepoClient:
         with pytest.raises(ValueError, match="pull request"):
             self.gh.create_pull_request_comment(comment="test", commit_sha="no_prs")
 
+    def test_update_commit_status(self, github_env):
+        res = self.gh.update_commit_status(
+            commit_sha="abc",
+            title="tests",
+            description="Testing something",
+            state=self.gh.StatusState.SUCCESS,
+            details_url="https://conbench.biz/",
+        )
+        assert res["description"] == "Testing something"
+
+    def test_update_commit_status_bad_state(self, github_env):
+        with pytest.raises(TypeError, match="StatusState"):
+            self.gh.update_commit_status(
+                commit_sha="abc",
+                title="tests",
+                description="Testing something",
+                state="sorta working",
+                details_url="https://conbench.biz/",
+            )
+
 
 class TestConbenchClient:
     @property
@@ -77,8 +73,9 @@ class TestConbenchClient:
         with pytest.raises(ValueError, match="CONBENCH_URL"):
             self.cb
 
-    def test_get_comparison_to_baseline(self, conbench_env):
-        output = self.cb.get_comparison_to_baseline("abc")
+    @pytest.mark.parametrize("z_score_threshold", [None, 500])
+    def test_get_comparison_to_baseline(self, conbench_env, z_score_threshold):
+        output = self.cb.get_comparison_to_baseline("abc", z_score_threshold)
         assert isinstance(output, dict)
         assert len(output) == 1
         assert isinstance(output["101"], list)

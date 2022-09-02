@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import abc
+import enum
+import json as json_
 import os
 from typing import Optional
 
@@ -57,7 +59,7 @@ class _BaseClient(abc.ABC):
 
     def post(self, path: str, json: dict) -> Optional[dict]:
         url = self.base_url + path
-        log.debug(f"POST {url} {json}")
+        log.debug(f"POST {url} {json_.dumps(json)}")
         res = self.session.post(url=url, json=json, timeout=self.timeout_s)
         res.raise_for_status()
         if res.content:
@@ -130,6 +132,61 @@ class GithubRepoClient(_BaseClient):
         )
         return self.post(f"/issues/{pull_number}/comments", json={"body": comment})
 
+    class StatusState(str, enum.Enum):
+        ERROR = "error"
+        FAILURE = "failure"
+        PENDING = "pending"
+        SUCCESS = "success"
+
+    def update_commit_status(
+        self,
+        commit_sha: str,
+        title: str,
+        description: str,
+        state: StatusState,
+        details_url: Optional[str] = None,
+    ) -> dict:
+        """Update the Github status of a commit.
+
+        A commit may have many statuses, each with their own title. Updating a previous
+        status with the same title for a given commit will result in overwriting that
+        status on that commit.
+
+        Parameters
+        ----------
+        commit_sha
+            The 40-character SHA of the commit to update.
+        title
+            The title of the status. Subsequent updates with the same title will update
+            the same status.
+        description
+            The short description of the status.
+        state
+            The overall status of the commit. Must be one of the
+            GithubRepoClient.StatusState enum values.
+        details_url
+            A URL to be linked to when clicking on status Details. Default None.
+
+        Returns
+        -------
+        dict
+            Github's details about the new status.
+        """
+        if not isinstance(state, self.StatusState):
+            fatal_and_log(
+                "state must be a GithubRepoClient.StatusState", etype=TypeError
+            )
+
+        json = {
+            "state": state.value,
+            "description": description,
+            "context": title,
+        }
+        if details_url:
+            json["target_url"] = details_url
+
+        return self.post(f"/statuses/{commit_sha}", json=json)
+
 
 class ConbenchClient(_BaseClient):
     """A client to interact with a Conbench server.
@@ -165,7 +222,9 @@ class ConbenchClient(_BaseClient):
         if login_creds["email"] and login_creds["password"]:
             self.post("/login/", json=login_creds)
 
-    def get_comparison_to_baseline(self, contender_sha: str) -> dict:
+    def get_comparison_to_baseline(
+        self, contender_sha: str, z_score_threshold: Optional[float] = None
+    ) -> dict:
         """Get benchmark comparisons between the given contender commit and its
         baseline commit.
 
@@ -178,6 +237,11 @@ class ConbenchClient(_BaseClient):
             The SHA of the contender commit to compare. Needs to match EXACTLY what
             conbench has stored; typically 40 characters. It can't be a shortened
             version of the SHA.
+        z_score_threshold
+            The (positive) z-score threshold to send to the conbench compare endpoint.
+            Benchmarks with a z-score more extreme than this threshold will be marked as
+            regressions or improvements in the result. Default is to use whatever
+            conbench uses for default.
 
         Returns
         -------
@@ -209,9 +273,13 @@ class ConbenchClient(_BaseClient):
         comparisons = {}
         log.info(f"Getting comparisons from {len(all_runs)} runs")
         for run in all_runs:
-            comparison = self.get(
-                f"/compare/runs/{run['baseline']['run_id']}...{run['contender']['run_id']}"
+            path = (
+                "/compare/runs/"
+                f"{run['baseline']['run_id']}...{run['contender']['run_id']}"
             )
+            if z_score_threshold:
+                path += f"?threshold_z={z_score_threshold}"
+            comparison = self.get(path)
             comparisons[run["contender"]["run_id"]] = comparison
 
         return comparisons
