@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from ._version import __version__
+from .workflows import update_github_status_based_on_regressions
 
-__all__ = ["__version__"]
+__all__ = ["__version__", "update_github_status_based_on_regressions"]
