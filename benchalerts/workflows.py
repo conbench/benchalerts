@@ -123,4 +123,5 @@ def update_github_status_based_on_regressions(
             state=github.StatusState.ERROR,
             details_url=build_url,
         )
+        log.error(f"Updated status with error: {e}")
         raise

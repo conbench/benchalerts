@@ -20,23 +20,28 @@ from mocks import MockResponse, response_dir
 from benchalerts.parse_conbench import benchmarks_with_z_regressions
 
 
-@pytest.fixture
-def all_comparisons():
-    compare_file = response_dir / "GET_conbench_compare_runs_100_101.json"
+def all_comparisons(include_regressions: bool):
+    if include_regressions:
+        compare_json = "GET_conbench_compare_runs_100_101.json"
+    else:
+        compare_json = "GET_conbench_compare_runs_100_101_threshold_z_500.json"
+    compare_file = response_dir / compare_json
     comparisons = MockResponse.from_file(compare_file).json()
     return {
         "run_id_1": deepcopy(comparisons),
-        "run_id_2": deepcopy(comparisons) + deepcopy(comparisons),
+        "run_id_2": deepcopy(comparisons),
     }
 
 
 @pytest.mark.parametrize("include_regressions", [False, True])
-def test_benchmarks_with_z_regressions(all_comparisons, include_regressions):
+def test_benchmarks_with_z_regressions(include_regressions):
     if include_regressions:
-        all_comparisons["run_id_1"][0]["contender_z_regression"] = True
-        expected = [("run_id_1", "snappy, nyctaxi_sample, parquet, arrow")]
+        expected = [
+            ("run_id_1", "snappy, nyctaxi_sample, parquet, arrow"),
+            ("run_id_2", "snappy, nyctaxi_sample, parquet, arrow"),
+        ]
     else:
         expected = []
 
-    actual = benchmarks_with_z_regressions(all_comparisons)
-    assert expected == actual
+    actual = benchmarks_with_z_regressions(all_comparisons(include_regressions))
+    assert actual == expected
