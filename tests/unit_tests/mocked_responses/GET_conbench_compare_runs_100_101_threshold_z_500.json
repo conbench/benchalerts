@@ -19,12 +19,12 @@
             "contender_id": "some-benchmark-uuid-3",
             "contender_run_id": "some-run-uuid-2",
             "contender_z_improvement": false,
-            "contender_z_regression": true,
+            "contender_z_regression": false,
             "contender_z_score": null,
             "improvement": false,
             "language": "Python",
             "less_is_better": true,
-            "regression": true,
+            "regression": false,
             "tags": {
                 "compression": "snappy",
                 "cpu_count": 2,
@@ -34,7 +34,7 @@
                 "name": "file-read"
             },
             "threshold": "5.000%",
-            "threshold_z": 5,
+            "threshold_z": 500,
             "unit": "s"
         },
         {
@@ -70,7 +70,7 @@
                 "name": "file-write"
             },
             "threshold": "5.000%",
-            "threshold_z": 5,
+            "threshold_z": 500,
             "unit": "s"
         }
     ]

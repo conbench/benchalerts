@@ -17,6 +17,18 @@ variables configured correctly:
 - `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
     `CI=true` in Github Actions, so we'll never run these tests in the CI build.
 
+To run tests that post a Github Status to a commit, you need the following environment
+variables configured correctly:
+
+- `GITHUB_API_TOKEN` - an API token that can post a status to
+    https://github.com/conbench/benchalerts/commit/4b95438.
+
+    If the token has insufficient permissions, the tests will fail with
+    `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/statuses/4b95438`.
+
+    If the environment variable isn't found, the tests will be skipped. This is
+    currently the case for our Github Actions setup.
+
 License information
 -------------------
 
