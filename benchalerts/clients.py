@@ -234,7 +234,7 @@ class ConbenchClient(_BaseClient):
         Parameters
         ----------
         contender_sha
-            The SHA of the contender commit to compare. Needs to match EXACTLY what
+            The commit SHA of the contender commit to compare. Needs to match EXACTLY what
             conbench has stored; typically 40 characters. It can't be a shortened
             version of the SHA.
         z_score_threshold
