@@ -14,8 +14,8 @@
 
 import abc
 import enum
-import json as json_
 import os
+from json import dumps
 from typing import Optional
 
 import requests
@@ -50,16 +50,16 @@ class _BaseClient(abc.ABC):
         self.session = requests.Session()
         self.session.mount("https://", adapter)
 
-    def get(self, path: str) -> dict:
+    def get(self, path: str, params: Optional[dict] = None) -> dict:
         url = self.base_url + path
-        log.debug(f"GET {url}")
-        res = self.session.get(url=url, timeout=self.timeout_s)
+        log.debug(f"GET {url} {params=}")
+        res = self.session.get(url=url, params=params, timeout=self.timeout_s)
         res.raise_for_status()
         return res.json()
 
     def post(self, path: str, json: dict) -> Optional[dict]:
         url = self.base_url + path
-        log.debug(f"POST {url} {json_.dumps(json)}")
+        log.debug(f"POST {url} {dumps(json)}")
         res = self.session.post(url=url, json=json, timeout=self.timeout_s)
         res.raise_for_status()
         if res.content:
@@ -249,7 +249,7 @@ class ConbenchClient(_BaseClient):
             A dict where keys are contender run_ids and values are lists of dicts
             containing benchmark comparison information.
         """
-        contender_info = self.get(f"/commits/?sha={contender_sha}")
+        contender_info = self.get("/commits/", params={"sha": contender_sha})
         if len(contender_info) != 1:
             fatal_and_log(
                 f"Found {len(contender_info)} commits in conbench that match the "
@@ -277,9 +277,8 @@ class ConbenchClient(_BaseClient):
                 "/compare/runs/"
                 f"{run['baseline']['run_id']}...{run['contender']['run_id']}"
             )
-            if z_score_threshold:
-                path += f"?threshold_z={z_score_threshold}"
-            comparison = self.get(path)
+            params = {"threshold_z": z_score_threshold} if z_score_threshold else None
+            comparison = self.get(path, params=params)
             comparisons[run["contender"]["run_id"]] = comparison
 
         return comparisons
