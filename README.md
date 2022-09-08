@@ -3,6 +3,16 @@
 A package to facilitate automated alerting based on
 [Conbench](https://github.com/conbench/conbench) data.
 
+## Installing
+
+To install the latest version:
+
+    pip install git+https://github.com/conbench/benchalerts.git
+
+To install a specific version (must specify a full MAJOR.MINOR.PATCH version):
+
+    pip install git+https://github.com/conbench/benchalerts.git@0.1.0
+
 ## Contributing
 
 To start, clone the repo, install the editable package, and initialize pre-commit:
