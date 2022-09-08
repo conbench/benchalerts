@@ -84,9 +84,19 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ env.VERSION }}',
-              sha: context.sha
-            })
+            try {
+              github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.VERSION }}',
+                sha: context.sha
+              });
+            } catch (error) {
+              console.log(error);
+              github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.VERSION }}',
+                sha: context.sha
+              });
+            }
