@@ -86,7 +86,7 @@ jobs:
           script: |
             try {
               console.log('trying');
-              github.rest.git.createRef({
+              await github.rest.git.createRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
@@ -96,7 +96,7 @@ jobs:
             } catch (error) {
               console.log('error');
               console.log(error);
-              github.rest.git.updateRef({
+              await github.rest.git.updateRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
