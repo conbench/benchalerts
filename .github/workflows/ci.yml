@@ -100,7 +100,8 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
-                sha: context.sha
+                sha: context.sha,
+                force: true
               });
               console.log('update success');
             }
