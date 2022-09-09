@@ -91,9 +91,10 @@ jobs:
                 ref: 'refs/tags/${{ env.VERSION }}',
                 sha: context.sha
               });
+              console.log('Tagged this commit: ${{ env.VERSION }}');
             } catch (error) {
               if (error.response.data.message == 'Reference already exists') {
-                console.log('Tag already existed; doing nothing');
+                console.log('Tag ${{ env.VERSION }} already existed; doing nothing');
               } else {
                 throw error;
               }
