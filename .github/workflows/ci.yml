@@ -90,18 +90,18 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
-                sha: context.sha
+                sha: ${{ github.event.pull_request.head.sha }}
               });
               console.log('success');
             } catch (error) {
-              console.log('error');
+              console.log('error:');
               console.log(error);
+              console.log('trying update');
               await github.rest.git.updateRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
-                sha: context.sha,
-                force: true
+                sha: ${{ github.event.pull_request.head.sha }}
               });
               console.log('update success');
             }
