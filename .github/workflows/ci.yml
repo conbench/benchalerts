@@ -90,7 +90,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
-                sha: ${{ github.event.pull_request.head.sha }}
+                sha: '${{ github.event.pull_request.head.sha }}'
               });
               console.log('success');
             } catch (error) {
@@ -101,7 +101,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: 'refs/tags/${{ env.VERSION }}',
-                sha: ${{ github.event.pull_request.head.sha }}
+                sha: '${{ github.event.pull_request.head.sha }}'
               });
               console.log('update success');
             }
