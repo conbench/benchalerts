@@ -63,3 +63,38 @@ jobs:
         run: pip install -e '.[dev]'
       - name: Run tests
         run: pytest -v -rs --log-level=DEBUG tests
+
+  release:
+    needs:
+      - check-copyright
+      - lint
+      - tests
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install package
+        run: pip install -e .
+      - name: Figure out current version
+        run: python -c 'import benchalerts; print(f"VERSION={benchalerts.__version__}")' >> $GITHUB_ENV
+      - name: Create or update the git tag with this version
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ env.VERSION }}',
+                sha: context.sha
+              });
+            } catch (error) {
+              if (error.response.data.message == 'Reference already exists') {
+                console.log('Tag already existed; doing nothing');
+              } else {
+                throw error;
+              }
+            }
