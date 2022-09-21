@@ -3,31 +3,30 @@ Integration tests
 
 These tests will interact with various services like Github and Conbench.
 
-To run tests that post comments to pull requests, you need the following environment
-variables configured correctly:
+To run tests that interact with GitHub, you need the following environment variables
+configured correctly:
 
-- `GITHUB_API_TOKEN` - an API token that can post a comment to
-    https://github.com/conbench/benchalerts/pull/5.
+- `GITHUB_API_TOKEN` - a Personal Access Token that has at least the `repo:status`
+    permission. Only used for the integration tests that need a PAT.
 
-    If the token has insufficient permissions, the tests will fail with
-    `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/issues/5/comments`.
+    If the token has insufficient permissions, the tests will fail with a 403.
 
-    If the environment variable isn't found, the tests will fail with
-    `Environment variable GITHUB_API_TOKEN not found`.
+    If this environment variable isn't found, the PAT tests will be skipped.
+- `GITHUB_APP_ID` - the GitHub App ID of an App that was created following the
+    instructions in the
+    [main README](../../README.md#creating-a-github-app-to-work-with-benchalerts).
+    The App must be installed on the `conbench` organization, with access to the
+    `conbench/benchalerts` repository.
+
+    If the App has insufficient permissions, the tests will fail with a 403.
+
+    If this environment variable isn't found, the App tests will be skipped.
+- `GITHUB_APP_PRIVATE_KEY` - the contents of the private key file of the same app as
+    above.
+
+    If this environment variable isn't found, the App tests will be skipped.
 - `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
     `CI=true` in Github Actions, so we'll never run these tests in the CI build.
-
-To run tests that post a Github Status to a commit, you need the following environment
-variables configured correctly:
-
-- `GITHUB_API_TOKEN` - an API token that can post a status to
-    https://github.com/conbench/benchalerts/commit/4b95438.
-
-    If the token has insufficient permissions, the tests will fail with
-    `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/statuses/4b95438`.
-
-    If the environment variable isn't found, the tests will be skipped. This is
-    currently the case for our Github Actions setup.
 
 License information
 -------------------

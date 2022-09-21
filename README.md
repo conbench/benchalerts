@@ -39,6 +39,57 @@ lint your code before a commit, but you can always lint manually by running
 
 Please ensure new files contain our license header; this will be checked in CI as well.
 
+## GitHub App Authentication
+
+The preferred method that `benchalerts` recommends for authenticating and posting to
+GitHub is to use a machine user called a
+[GitHub App](https://docs.github.com/en/developers/apps/getting-started-with-apps/about-apps).
+Using an App will allow you to post using a "bot" entity without taking up a seat in
+your organization, and will allow you to use the extra features of the
+[Checks API](https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api).
+These features give much more context when analyzing benchmark runs.
+
+Each Conbench server must create its own GitHub App for security reasons. To do so,
+follow these instructions.
+
+### Creating a GitHub App to work with `benchalerts`
+
+You must be an administrator of your GitHub organization to do this.
+
+1. Go to the official
+    [GitHub instructions](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
+    for creating an App. Follow the instructions for "a GitHub App owned by an
+    organization."
+1. For the App Name, use `conbench-<your org>`.
+1. For the Homepage URL, use the link to your Conbench server.
+1. Ignore the Callback URL and Setup URL.
+1. Uncheck the "Active" box under Webhook. Since this App will not be an active service,
+    we don't need GitHub to push webhook events to the App.
+1. For full use of this package, the App requires the following permissions:
+    - Repository > Checks > Read and Write
+    - Repository > Commit statuses > Read and Write
+    - Repository > Pull requests > Read and Write
+1. After creating the App, save the App ID for later.
+1. In the App Settings, scroll down to Private Keys and generate a private key. This
+    will download a file to your computer. Treat the contents of this file like a
+    password.
+1. IMPORTANT: After creation, follow
+    [these instructions](https://docs.github.com/en/developers/apps/managing-github-apps/installing-github-apps)
+    to install the new App on the repos you'd like it to be able to post to.
+
+### Running `benchalerts` as the GitHub App you created
+
+All that's necessary to use `benchalerts` workflows that post to GitHub as your App is
+to set the following environment variables:
+
+- `GITHUB_APP_ID` - the App ID from above
+- `GITHUB_APP_PRIVATE_KEY` - the _contents_ of the private key file from above. This is
+    a multiline file, so ensure you quote the contents correctly if necessary.
+
+Since `benchalerts` is usually used in CI, it's recommended to set these two environment
+variables in your CI pipeline as secret env vars. Most CI systems have a mechanism for
+doing this. For security reasons, do not check these values into version control.
+
 ## License information
 
 Copyright (c) 2022, Voltron Data.
