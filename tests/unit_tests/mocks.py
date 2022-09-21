@@ -42,6 +42,7 @@ class MockAdapter(HTTPAdapter):
     def clean_base_url(url: str) -> str:
         bases = {
             "https://api.github.com/repos/some/repo": "github",
+            "https://api.github.com/app": "github_app",
             "https://conbench.biz/api": "conbench",
         }
         for base_url, base_name in bases.items():
