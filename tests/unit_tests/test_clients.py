@@ -14,16 +14,16 @@
 
 import pytest
 
-from benchalerts.clients import ConbenchClient, GithubRepoClient
+from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
 from .mocks import MockAdapter
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
-class TestGithubRepoClient:
+class TestGitHubRepoClient:
     @property
     def gh(self):
-        return GithubRepoClient("some/repo", adapter=MockAdapter())
+        return GitHubRepoClient("some/repo", adapter=MockAdapter())
 
     def test_create_pull_request_comment_with_number(self, github_auth):
         output = self.gh.create_pull_request_comment(comment="test", pull_number=1347)
@@ -65,14 +65,14 @@ class TestGithubRepoClient:
 @pytest.mark.parametrize("github_auth", ["none"], indirect=True)
 def test_github_fails_missing_env(github_auth):
     with pytest.raises(ValueError, match="GITHUB_APP_ID"):
-        TestGithubRepoClient().gh
+        TestGitHubRepoClient().gh
 
 
 @pytest.mark.parametrize("github_auth", ["none"], indirect=True)
 def test_github_fails_missing_env_2(github_auth, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("GITHUB_APP_ID", "123456")
     with pytest.raises(ValueError, match="GITHUB_APP_PRIVATE_KEY"):
-        TestGithubRepoClient().gh
+        TestGitHubRepoClient().gh
 
 
 class TestConbenchClient:

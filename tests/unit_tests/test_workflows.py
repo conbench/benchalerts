@@ -15,7 +15,7 @@
 import pytest
 
 import benchalerts.workflows as flows
-from benchalerts.clients import ConbenchClient, GithubRepoClient
+from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
 from .mocks import MockAdapter
 
@@ -25,7 +25,7 @@ from .mocks import MockAdapter
 def test_update_github_status_based_on_regressions(
     github_auth, conbench_env, z_score_threshold
 ):
-    gh = GithubRepoClient("some/repo", adapter=MockAdapter())
+    gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
 
     res = flows.update_github_status_based_on_regressions(
@@ -38,7 +38,7 @@ def test_update_github_status_based_on_regressions(
 def test_update_github_status_based_on_regressions_failure(
     github_auth, missing_conbench_env
 ):
-    gh = GithubRepoClient("some/repo", adapter=MockAdapter())
+    gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
 
     with pytest.raises(ValueError, match="not found"):
         flows.update_github_status_based_on_regressions(contender_sha="abc", github=gh)

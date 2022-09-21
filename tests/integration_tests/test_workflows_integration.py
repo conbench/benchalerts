@@ -18,7 +18,7 @@ import time
 import pytest
 
 import benchalerts.workflows as flows
-from benchalerts.clients import GithubRepoClient
+from benchalerts.clients import GitHubRepoClient
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
@@ -54,7 +54,7 @@ def test_update_github_status_based_on_regressions(
     # next, a success if z_score_threshold=500, or failure if z_score_threshold=None
     monkeypatch.setenv("CONBENCH_URL", arrow_conbench_url)
 
-    class GithubDifferentRepoClient(GithubRepoClient):
+    class GitHubDifferentRepoClient(GitHubRepoClient):
         def update_commit_status(self, commit_sha, **kwargs):
             """Even though we're grabbing Arrow benchmarks, we want to post to our own
             repo for testing. This overrides the method to post statuses to a different
@@ -62,7 +62,7 @@ def test_update_github_status_based_on_regressions(
             """
             return super().update_commit_status(commit_sha=test_status_commit, **kwargs)
 
-    github = GithubDifferentRepoClient(repo=test_status_repo)
+    github = GitHubDifferentRepoClient(repo=test_status_repo)
 
     res = flows.update_github_status_based_on_regressions(
         contender_sha=arrow_commit, z_score_threshold=z_score_threshold, github=github

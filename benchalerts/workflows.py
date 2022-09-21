@@ -15,7 +15,7 @@
 import os
 from typing import Optional
 
-from .clients import ConbenchClient, GithubRepoClient
+from .clients import ConbenchClient, GitHubRepoClient
 from .log import log
 from .parse_conbench import benchmarks_with_z_regressions
 
@@ -24,11 +24,11 @@ def update_github_status_based_on_regressions(
     contender_sha: str,
     z_score_threshold: Optional[float] = None,
     repo: Optional[str] = None,
-    github: Optional[GithubRepoClient] = None,
+    github: Optional[GitHubRepoClient] = None,
     conbench: Optional[ConbenchClient] = None,
 ) -> dict:
     """Grab the benchmark result comparisons for a given contender commit, and post to
-    Github whether there were any regressions, in the form of a commit status.
+    GitHub whether there were any regressions, in the form of a commit status.
 
     Parameters
     ----------
@@ -44,7 +44,7 @@ def update_github_status_based_on_regressions(
         The repo name to post the status to, in the form 'owner/repo'. Either provide
         this or ``github``.
     github
-        A GithubRepoClient instance. Either provide this or ``repo``.
+        A GitHubRepoClient instance. Either provide this or ``repo``.
     conbench
         A ConbenchClient instance. If not given, one will be created using the standard
         environment variables.
@@ -52,19 +52,19 @@ def update_github_status_based_on_regressions(
     Environment variables
     ---------------------
     BUILD_URL
-        The URL of the build running this code. If provided, the Github status will link
+        The URL of the build running this code. If provided, the GitHub status will link
         to the build when there's an error in this workflow.
     GITHUB_APP_ID
         The ID of a GitHub App that has been set up according to this package's
         instructions and installed to your repo. Recommended over GITHUB_API_TOKEN. Only
-        required if a GithubRepoClient is not provided.
+        required if a GitHubRepoClient is not provided.
     GITHUB_APP_PRIVATE_KEY
         The private key file contents of a GitHub App that has been set up according to
         this package's instructions and installed to your repo. Recommended over
-        GITHUB_API_TOKEN. Only required if a GithubRepoClient is not provided.
+        GITHUB_API_TOKEN. Only required if GitHubRepoClient is not provided.
     GITHUB_API_TOKEN
-        A Github Personal Access Token with the ``repo:status`` permission. Only
-        required if not going with GitHub App authentication and if a GithubRepoClient
+        A GitHub Personal Access Token with the ``repo:status`` permission. Only
+        required if not going with GitHub App authentication and if a GitHubRepoClient
         is not provided.
     CONBENCH_URL
         The URL of the Conbench server. Only required if a ConbenchClient is not
@@ -79,10 +79,10 @@ def update_github_status_based_on_regressions(
     Returns
     -------
     dict
-        Github's details about the new status.
+        GitHub's details about the new status.
     """
     build_url = os.getenv("BUILD_URL")
-    github = github or GithubRepoClient(repo=repo)
+    github = github or GitHubRepoClient(repo=repo)
 
     def update_status(description, state, details_url):
         """Shortcut for updating the "conbench" status on the given SHA, with debug

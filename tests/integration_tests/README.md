@@ -1,7 +1,7 @@
 Integration tests
 -----------------
 
-These tests will interact with various services like Github and Conbench.
+These tests will interact with various services like GitHub and Conbench.
 
 To run tests that interact with GitHub, you need the following environment variables
 configured correctly:
@@ -26,7 +26,7 @@ configured correctly:
 
     If this environment variable isn't found, the App tests will be skipped.
 - `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
-    `CI=true` in Github Actions, so we'll never run these tests in the CI build.
+    `CI=true` in GitHub Actions, so we'll never run these tests in the CI build.
 
 License information
 -------------------
