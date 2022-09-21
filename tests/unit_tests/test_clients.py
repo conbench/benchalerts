@@ -15,13 +15,13 @@
 import pytest
 from mocks import MockAdapter
 
-from benchalerts.clients import ConbenchClient, GithubRepoClient
+from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
 
-class TestGithubRepoClient:
+class TestGitHubRepoClient:
     @property
     def gh(self):
-        return GithubRepoClient("some/repo", adapter=MockAdapter())
+        return GitHubRepoClient("some/repo", adapter=MockAdapter())
 
     def test_github_fails_missing_env(self, missing_github_env):
         with pytest.raises(ValueError, match="GITHUB_API_TOKEN"):

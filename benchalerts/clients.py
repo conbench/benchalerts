@@ -66,8 +66,8 @@ class _BaseClient(abc.ABC):
             return res.json()
 
 
-class GithubRepoClient(_BaseClient):
-    """A client to interact with a Github repo.
+class GitHubRepoClient(_BaseClient):
+    """A client to interact with a GitHub repo.
 
     Parameters
     ----------
@@ -80,7 +80,7 @@ class GithubRepoClient(_BaseClient):
     Environment variables
     ---------------------
     GITHUB_API_TOKEN
-        A Github API token with ``repo`` access.
+        A GitHub API token with ``repo`` access.
     """
 
     def __init__(self, repo: str, adapter: Optional[HTTPAdapter] = None):
@@ -146,7 +146,7 @@ class GithubRepoClient(_BaseClient):
         state: StatusState,
         details_url: Optional[str] = None,
     ) -> dict:
-        """Update the Github status of a commit.
+        """Update the GitHub status of a commit.
 
         A commit may have many statuses, each with their own title. Updating a previous
         status with the same title for a given commit will result in overwriting that
@@ -163,18 +163,18 @@ class GithubRepoClient(_BaseClient):
             The short description of the status.
         state
             The overall status of the commit. Must be one of the
-            GithubRepoClient.StatusState enum values.
+            GitHubRepoClient.StatusState enum values.
         details_url
             A URL to be linked to when clicking on status Details. Default None.
 
         Returns
         -------
         dict
-            Github's details about the new status.
+            GitHub's details about the new status.
         """
         if not isinstance(state, self.StatusState):
             fatal_and_log(
-                "state must be a GithubRepoClient.StatusState", etype=TypeError
+                "state must be a GitHubRepoClient.StatusState", etype=TypeError
             )
 
         json = {
