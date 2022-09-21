@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import pytest
-from .mocks import MockAdapter
 
 from benchalerts.clients import ConbenchClient, GithubRepoClient
+
+from .mocks import MockAdapter
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)

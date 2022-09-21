@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import pytest
-from .mocks import MockAdapter
 
 import benchalerts.workflows as flows
 from benchalerts.clients import ConbenchClient, GithubRepoClient
+
+from .mocks import MockAdapter
 
 
 @pytest.mark.parametrize("z_score_threshold", [None, 500])
