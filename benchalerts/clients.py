@@ -139,7 +139,7 @@ class GitHubRepoClient(_BaseClient):
 
     You may authenticate with the GitHub API using a GitHub Personal Access Token or a
     GitHub App. The correct environment variables must be set depending on which method
-    of authentication you're using.
+    of authentication you're using. If all are set, the App method will be used.
 
     Parameters
     ----------
@@ -151,26 +151,26 @@ class GitHubRepoClient(_BaseClient):
 
     Environment variables
     ---------------------
-    GITHUB_API_TOKEN
-        A GitHub API token with ``repo`` access. Only used for Personal Access Token
-        authentication.
     GITHUB_APP_ID
         The numeric GitHub App ID you can get from its settings page. Only used for
         GitHub App authentication.
     GITHUB_APP_PRIVATE_KEY
         The full contents of the private key file downloaded from the App's settings
         page. Only used for GitHub App authentication.
+    GITHUB_API_TOKEN
+        A GitHub API token with ``repo`` access. Only used for Personal Access Token
+        authentication.
     """
 
     def __init__(self, repo: str, adapter: Optional[HTTPAdapter] = None):
-        token = os.getenv("GITHUB_API_TOKEN")
-        if not token:
-            log.info(
-                "Environment variable GITHUB_API_TOKEN not found. Attempting to "
-                "authenticate as a GitHub App."
-            )
+        if os.getenv("GITHUB_APP_ID") or os.getenv("GITHUB_APP_PRIVATE_KEY"):
+            log.info("Attempting to authenticate as a GitHub App.")
             app_client = GitHubAppClient(adapter=adapter)
             token = app_client.get_app_access_token()
+        else:
+            token = os.getenv("GITHUB_API_TOKEN")
+            if not token:
+                fatal_and_log("Environment variable GITHUB_API_TOKEN not found.")
 
         super().__init__(adapter=adapter)
         self.session.headers = {"Authorization": f"Bearer {token}"}

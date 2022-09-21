@@ -63,16 +63,20 @@ class TestGitHubRepoClient:
 
 
 @pytest.mark.parametrize("github_auth", ["none"], indirect=True)
-def test_github_fails_missing_env(github_auth):
-    with pytest.raises(ValueError, match="GITHUB_APP_ID"):
-        TestGitHubRepoClient().gh
+class TestMissingGithubEnvVars:
+    def test_no_vars_at_all(self, github_auth):
+        with pytest.raises(ValueError, match="GITHUB_API_TOKEN"):
+            TestGitHubRepoClient().gh
 
+    def test_no_app_id(self, github_auth, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("GITHUB_APP_PRIVATE_KEY", "private key")
+        with pytest.raises(ValueError, match="GITHUB_APP_ID"):
+            TestGitHubRepoClient().gh
 
-@pytest.mark.parametrize("github_auth", ["none"], indirect=True)
-def test_github_fails_missing_env_2(github_auth, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("GITHUB_APP_ID", "123456")
-    with pytest.raises(ValueError, match="GITHUB_APP_PRIVATE_KEY"):
-        TestGitHubRepoClient().gh
+    def test_no_app_pk(self, github_auth, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("GITHUB_APP_ID", "123456")
+        with pytest.raises(ValueError, match="GITHUB_APP_PRIVATE_KEY"):
+            TestGitHubRepoClient().gh
 
 
 class TestConbenchClient:
