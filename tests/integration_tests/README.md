@@ -1,7 +1,7 @@
 Integration tests
 -----------------
 
-These tests will interact with various services like Github and Conbench.
+These tests will interact with various services like GitHub and Conbench.
 
 To run tests that post comments to pull requests, you need the following environment
 variables configured correctly:
@@ -15,9 +15,9 @@ variables configured correctly:
     If the environment variable isn't found, the tests will fail with
     `Environment variable GITHUB_API_TOKEN not found`.
 - `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
-    `CI=true` in Github Actions, so we'll never run these tests in the CI build.
+    `CI=true` in GitHub Actions, so we'll never run these tests in the CI build.
 
-To run tests that post a Github Status to a commit, you need the following environment
+To run tests that post a GitHub Status to a commit, you need the following environment
 variables configured correctly:
 
 - `GITHUB_API_TOKEN` - an API token that can post a status to
@@ -27,7 +27,7 @@ variables configured correctly:
     `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/statuses/4b95438`.
 
     If the environment variable isn't found, the tests will be skipped. This is
-    currently the case for our Github Actions setup.
+    currently the case for our GitHub Actions setup.
 
 License information
 -------------------

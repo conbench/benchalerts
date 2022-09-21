@@ -16,14 +16,14 @@ import os
 
 import pytest
 
-from benchalerts.clients import ConbenchClient, GithubRepoClient
+from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
 
 def test_create_pull_request_comment():
     if os.getenv("CI"):
         pytest.skip("Don't post a PR comment from CI")
 
-    gh = GithubRepoClient("conbench/benchalerts")
+    gh = GitHubRepoClient("conbench/benchalerts")
     res = gh.create_pull_request_comment(
         "posted from an integration test", commit_sha="adc9b73"
     )
