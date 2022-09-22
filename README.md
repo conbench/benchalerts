@@ -54,12 +54,16 @@ follow these instructions.
 
 ### Creating a GitHub App to work with `benchalerts`
 
-You must be an administrator of your GitHub organization to do this.
-
 1. Go to the official
     [GitHub instructions](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
-    for creating an App. Follow the instructions for "a GitHub App owned by an
-    organization."
+    for creating an App.
+    - If you are an admin of your GitHub organization, follow the instructions for "a
+        GitHub App owned by an organization." This method is preferred because the org
+        will own the app instead of a user account (who may not be part of the org in
+        the future).
+    - If not, you can follow the instructions for "a GitHub App owned by a personal
+        account." You will send an installation request to org admins after creating the
+        app. You can always transfer the ownership of the app to an org later.
 1. For the App Name, use `conbench-<your org>`.
 1. For the Homepage URL, use the link to your Conbench server.
 1. Ignore the Callback URL and Setup URL.
@@ -73,9 +77,11 @@ You must be an administrator of your GitHub organization to do this.
 1. In the App Settings, scroll down to Private Keys and generate a private key. This
     will download a file to your computer. Treat the contents of this file like a
     password.
-1. IMPORTANT: After creation, follow
-    [these instructions](https://docs.github.com/en/developers/apps/managing-github-apps/installing-github-apps)
-    to install the new App on the repos you'd like it to be able to post to.
+1. IMPORTANT: After creation, go to
+    `https://github.com/apps/<YOUR_APP_NAME>/installations/new` to install the new App
+    on the repos you'd like it to be able to post to. You must be a member of the
+    organization to install the App on. If you are not an admin, an email request will
+    be sent to org admins, which must be approved.
 
 ### Running `benchalerts` as the GitHub App you created
 
