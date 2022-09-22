@@ -15,6 +15,7 @@
 import abc
 import enum
 import os
+import textwrap
 from json import dumps
 from typing import Optional, Tuple
 
@@ -179,7 +180,7 @@ class GitHubRepoClient(_BaseClient):
 
         json = {
             "state": state.value,
-            "description": description,
+            "description": textwrap.shorten(description, 140),
             "context": title,
         }
         if details_url:
