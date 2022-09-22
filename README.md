@@ -59,8 +59,9 @@ follow these instructions.
     for creating an App.
     - If you are an admin of your GitHub organization, follow the instructions for "a
         GitHub App owned by an organization." This method is preferred because the org
-        will own the app instead of a user account (who may not be part of the org in
-        the future).
+        will own the app instead of a user, who may not be part of the org in the
+        future. (This will not affect the identity of the bot that posts to GitHub, just
+        the ownership of the App.)
     - If not, you can follow the instructions for "a GitHub App owned by a personal
         account." You will send an installation request to org admins after creating the
         app. You can always transfer the ownership of the app to an org later.
