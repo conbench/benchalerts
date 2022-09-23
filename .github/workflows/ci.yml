@@ -54,6 +54,9 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+      GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v2
