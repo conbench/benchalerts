@@ -16,8 +16,9 @@ import abc
 import datetime
 import enum
 import os
+import textwrap
 from json import dumps
-from typing import Optional
+from typing import Optional, Tuple
 
 import jwt
 import requests
@@ -263,7 +264,7 @@ class GitHubRepoClient(_BaseClient):
 
         json = {
             "state": state.value,
-            "description": description,
+            "description": textwrap.shorten(description, 140),
             "context": title,
         }
         if details_url:
@@ -308,18 +309,19 @@ class ConbenchClient(_BaseClient):
 
     def get_comparison_to_baseline(
         self, contender_sha: str, z_score_threshold: Optional[float] = None
-    ) -> dict:
+    ) -> Tuple[dict, bool]:
         """Get benchmark comparisons between the given contender commit and its
         baseline commit.
 
         The baseline commit is defined by conbench, and it's typically the most recent
-        ancestor of the contender commit that's on the default branch.
+        ancestor of the contender commit that's on the default branch. This method also
+        returns whether that's the immediate parent of the contender or not.
 
         Parameters
         ----------
         contender_sha
-            The commit SHA of the contender commit to compare. Needs to match EXACTLY what
-            conbench has stored; typically 40 characters. It can't be a shortened
+            The commit SHA of the contender commit to compare. Needs to match EXACTLY
+            what conbench has stored; typically 40 characters. It can't be a shortened
             version of the SHA.
         z_score_threshold
             The (positive) z-score threshold to send to the conbench compare endpoint.
@@ -332,37 +334,32 @@ class ConbenchClient(_BaseClient):
         dict
             A dict where keys are contender run_ids and values are lists of dicts
             containing benchmark comparison information.
+        bool
+            True if all the baseline runs were found on the immediate parent of the
+            contender commit. If False, the contender might be a non-first PR commit, or
+            there could have been commits on the default branch without any logged
+            Conbench runs.
         """
-        contender_info = self.get("/commits/", params={"sha": contender_sha})
-        if len(contender_info) != 1:
-            fatal_and_log(
-                f"Found {len(contender_info)} commits in conbench that match the "
-                f"contender SHA '{contender_sha}'."
-            )
-
-        baseline_sha = contender_info[0].get("parent_sha")
-        if not baseline_sha:
-            fatal_and_log(
-                f"Found the contender commit ({contender_sha}) but it doesn't have a "
-                "baseline commit in conbench."
-            )
-
-        commit_compare = self.get(f"/compare/commits/{baseline_sha}...{contender_sha}")
-        all_runs = commit_compare["runs"]
-        if not all_runs:
+        comparisons = {}
+        baseline_is_parent = True
+        contender_runs = self.get("/runs/", params={"sha": contender_sha})
+        if not contender_runs:
             fatal_and_log(
                 f"Contender commit '{contender_sha}' doesn't have any runs in conbench."
             )
 
-        comparisons = {}
-        log.info(f"Getting comparisons from {len(all_runs)} runs")
-        for run in all_runs:
-            path = (
-                "/compare/runs/"
-                f"{run['baseline']['run_id']}...{run['contender']['run_id']}"
-            )
+        log.info(f"Getting comparisons from {len(contender_runs)} runs")
+        for run in contender_runs:
+            contender_info = self.get(f"/runs/{run['id']}/")
+            baseline_path = contender_info["links"]["baseline"].split("/api")[-1]
+            baseline_info = self.get(baseline_path)
+
+            if baseline_info["commit"]["sha"] != contender_info["commit"]["parent_sha"]:
+                baseline_is_parent = False
+
+            path = f"/compare/runs/{baseline_info['id']}...{contender_info['id']}"
             params = {"threshold_z": z_score_threshold} if z_score_threshold else None
             comparison = self.get(path, params=params)
-            comparisons[run["contender"]["run_id"]] = comparison
+            comparisons[contender_info["id"]] = comparison
 
-        return comparisons
+        return comparisons, baseline_is_parent

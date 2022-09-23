@@ -109,7 +109,7 @@ def update_github_status_based_on_regressions(
     # If anything in here fails, we can!
     try:
         conbench = conbench or ConbenchClient()
-        all_comparisons = conbench.get_comparison_to_baseline(
+        all_comparisons, _ = conbench.get_comparison_to_baseline(
             contender_sha=contender_sha, z_score_threshold=z_score_threshold
         )
         regressions = benchmarks_with_z_regressions(all_comparisons)

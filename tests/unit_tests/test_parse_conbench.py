@@ -23,9 +23,9 @@ from .mocks import MockResponse, response_dir
 
 def all_comparisons(include_regressions: bool):
     if include_regressions:
-        compare_json = "GET_conbench_compare_runs_100_101.json"
+        compare_json = "GET_conbench_compare_runs_some_baseline_some_contender.json"
     else:
-        compare_json = "GET_conbench_compare_runs_100_101_threshold_z_500.json"
+        compare_json = "GET_conbench_compare_runs_some_baseline_some_contender_threshold_z_500.json"
     compare_file = response_dir / compare_json
     comparisons = MockResponse.from_file(compare_file).json()
     return {

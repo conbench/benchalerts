@@ -34,11 +34,32 @@ def test_create_pull_request_comment(github_auth: str):
         assert res["user"]["type"] == "Bot"
 
 
-def test_get_comparison_to_baseline(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("CONBENCH_URL", "https://conbench.ursa.dev/")
+@pytest.mark.parametrize(
+    ["conbench_url", "commit", "expected_len", "expected_bip"],
+    [
+        (
+            "https://conbench.ursa.dev/",
+            "bc7de406564fa7b2bcb9bf055cbaba31ca0ca124",
+            8,
+            True,
+        ),
+        (
+            "https://velox-conbench.voltrondata.run",
+            "2319922d288c519baa3bffe59c0bedbcb6c827cd",
+            1,
+            False,
+        ),
+    ],
+)
+def test_get_comparison_to_baseline(
+    monkeypatch: pytest.MonkeyPatch, conbench_url, commit, expected_len, expected_bip
+):
+    monkeypatch.setenv("CONBENCH_URL", conbench_url)
     cb = ConbenchClient()
-    res = cb.get_comparison_to_baseline("bc7de406564fa7b2bcb9bf055cbaba31ca0ca124")
-    assert len(res) == 8
-    for comparison in res.values():
+    res = cb.get_comparison_to_baseline(commit)
+    comparisons, baseline_is_parent = res
+    assert baseline_is_parent is expected_bip
+    assert len(comparisons) == expected_len
+    for comparison in comparisons.values():
         for benchmark in comparison:
             assert benchmark["contender_run_id"]

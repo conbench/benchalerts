@@ -91,18 +91,12 @@ class TestConbenchClient:
     @pytest.mark.parametrize("z_score_threshold", [None, 500])
     def test_get_comparison_to_baseline(self, conbench_env, z_score_threshold):
         output = self.cb.get_comparison_to_baseline("abc", z_score_threshold)
-        assert isinstance(output, dict)
-        assert len(output) == 1
-        assert isinstance(output["101"], list)
-        assert len(output["101"]) == 2
-
-    def test_comparison_fails_when_no_commits(self, conbench_env):
-        with pytest.raises(ValueError, match="commits"):
-            self.cb.get_comparison_to_baseline("no_commits")
-
-    def test_comparison_fails_when_no_baseline(self, conbench_env):
-        with pytest.raises(ValueError, match="baseline"):
-            self.cb.get_comparison_to_baseline("no_baseline")
+        comparisons, baseline_is_parent = output
+        assert not baseline_is_parent
+        assert isinstance(comparisons, dict)
+        assert len(comparisons) == 1
+        assert isinstance(comparisons["some_contender"], list)
+        assert len(comparisons["some_contender"]) == 2
 
     def test_comparison_fails_when_no_runs(self, conbench_env):
         with pytest.raises(ValueError, match="runs"):
