@@ -14,7 +14,8 @@ configured correctly:
 
     If the token has insufficient permissions, the tests will fail with a 403.
 
-    If this environment variable isn't found, the PAT tests will be skipped.
+    If this environment variable isn't found, the PAT tests will be skipped. This is
+    currently the case in our GitHub Actions CI builds.
 - `GITHUB_APP_ID` - the GitHub App ID of an App that was created following the
     instructions in the
     [main README](../../README.md#creating-a-github-app-to-work-with-benchalerts).
@@ -23,13 +24,17 @@ configured correctly:
 
     If the App has insufficient permissions, the tests will fail with a 403.
 
-    If this environment variable isn't found, the App tests will be skipped.
+    If this environment variable isn't found, the App tests will be skipped. This
+    variable is populated in our GitHub Actions CI builds, so some of these tests are
+    run in CI.
 - `GITHUB_APP_PRIVATE_KEY` - the contents of the private key file of the same app as
     above.
 
     If this environment variable isn't found, the App tests will be skipped.
-- `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
-    `CI=true` in GitHub Actions, so we'll never run these tests in the CI build.
+- `CI` - this env var must *NOT* be set, or the tests that post comments to PRs will be
+    skipped. By default, `CI=true` in GitHub Actions, so we'll never run these PR
+    comment tests in the CI build. (We still run other GitHub App-authenticated
+    integration tests.)
 
 License information
 -------------------
