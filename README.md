@@ -26,7 +26,7 @@ To start, clone the repo, install the editable package, and initialize pre-commi
 
 After making changes, run tests:
 
-    pytest -vvrs --log-level=DEBUG tests/
+    pytest -vv --log-level=DEBUG tests/
 
 This will run both unit and integration tests, but integration tests will be skipped if
 the correct environment variables are not set. See `tests/integration_tests/README.md`

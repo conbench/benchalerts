@@ -4,7 +4,7 @@ Integration tests
 These tests will interact with various services like GitHub and Conbench. To run only
 these tests, do
 
-    pytest -vvrs --log-level=DEBUG tests/integration_tests
+    pytest -vv --log-level=DEBUG tests/integration_tests
 
 To run tests that interact with GitHub, you need the following environment variables
 configured correctly:

@@ -62,7 +62,7 @@ jobs:
       - name: Install package
         run: pip install -e '.[dev]'
       - name: Run tests
-        run: pytest -vvrs --log-level=DEBUG tests
+        run: pytest -vv --log-level=DEBUG tests
 
   release:
     needs:
