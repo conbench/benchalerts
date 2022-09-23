@@ -13,6 +13,8 @@ To install a specific version (must specify a full MAJOR.MINOR.PATCH version):
 
     pip install git+https://github.com/conbench/benchalerts.git@0.1.0
 
+The latest version is defined in [this file](benchalerts/_version.py).
+
 ## Contributing
 
 To start, clone the repo, install the editable package, and initialize pre-commit:
@@ -24,13 +26,19 @@ To start, clone the repo, install the editable package, and initialize pre-commi
     pip install -e '.[dev]'
     pre-commit install
 
-After making changes, run tests:
+After making changes, run tests. The coverage theshold is defined in the
+[CI yml file](.github/workflows/ci.yml). PRs with a total coverage under this threshold
+will fail the CI build.
 
-    pytest -vv --log-level=DEBUG tests/
+    pytest -vv \
+        --log-level DEBUG \
+        --cov benchalerts \
+        --cov-report term-missing \
+        tests
 
 This will run both unit and integration tests, but integration tests will be skipped if
-the correct environment variables are not set. See `tests/integration_tests/README.md`
-for instructions.
+the correct environment variables are not set. See
+[the integration test README](tests/integration_tests/README.md) for instructions.
 
 Code is linted with `black`, `flake8`, and `isort`. `pre-commit` should automatically
 lint your code before a commit, but you can always lint manually by running
