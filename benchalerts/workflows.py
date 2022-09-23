@@ -54,9 +54,18 @@ def update_github_status_based_on_regressions(
     BUILD_URL
         The URL of the build running this code. If provided, the GitHub status will link
         to the build when there's an error in this workflow.
+    GITHUB_APP_ID
+        The ID of a GitHub App that has been set up according to this package's
+        instructions and installed to your repo. Recommended over GITHUB_API_TOKEN. Only
+        required if a GitHubRepoClient is not provided.
+    GITHUB_APP_PRIVATE_KEY
+        The private key file contents of a GitHub App that has been set up according to
+        this package's instructions and installed to your repo. Recommended over
+        GITHUB_API_TOKEN. Only required if GitHubRepoClient is not provided.
     GITHUB_API_TOKEN
-        A GitHub API token with ``repo`` access. Only required if a GitHubRepoClient is
-        not provided.
+        A GitHub Personal Access Token with the ``repo:status`` permission. Only
+        required if not going with GitHub App authentication and if a GitHubRepoClient
+        is not provided.
     CONBENCH_URL
         The URL of the Conbench server. Only required if a ConbenchClient is not
         provided.

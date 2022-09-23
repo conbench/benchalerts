@@ -1,33 +1,40 @@
 Integration tests
 -----------------
 
-These tests will interact with various services like GitHub and Conbench.
+These tests will interact with various services like GitHub and Conbench. To run only
+these tests, do
 
-To run tests that post comments to pull requests, you need the following environment
-variables configured correctly:
+    pytest -vv --log-level=DEBUG tests/integration_tests
 
-- `GITHUB_API_TOKEN` - an API token that can post a comment to
-    https://github.com/conbench/benchalerts/pull/5.
+To run tests that interact with GitHub, you need the following environment variables
+configured correctly:
 
-    If the token has insufficient permissions, the tests will fail with
-    `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/issues/5/comments`.
+- `GITHUB_API_TOKEN` - a Personal Access Token that has at least the `repo:status`
+    permission. Only used for the integration tests that need a PAT.
 
-    If the environment variable isn't found, the tests will fail with
-    `Environment variable GITHUB_API_TOKEN not found`.
-- `CI` - this env var must *NOT* be set, or the tests will be skipped. By default,
-    `CI=true` in GitHub Actions, so we'll never run these tests in the CI build.
+    If the token has insufficient permissions, the tests will fail with a 403.
 
-To run tests that post a GitHub Status to a commit, you need the following environment
-variables configured correctly:
+    If this environment variable isn't found, the PAT tests will be skipped. This is
+    currently the case in our GitHub Actions CI builds.
+- `GITHUB_APP_ID` - the GitHub App ID of an App that was created following the
+    instructions in the
+    [main README](../../README.md#creating-a-github-app-to-work-with-benchalerts).
+    The App must be installed on the `conbench` organization, with access to the
+    `conbench/benchalerts` repository.
 
-- `GITHUB_API_TOKEN` - an API token that can post a status to
-    https://github.com/conbench/benchalerts/commit/4b95438.
+    If the App has insufficient permissions, the tests will fail with a 403.
 
-    If the token has insufficient permissions, the tests will fail with
-    `403 Client Error: Forbidden for url: https://api.github.com/repos/conbench/benchalerts/statuses/4b95438`.
+    If this environment variable isn't found, the App tests will be skipped. This
+    variable is populated in our GitHub Actions CI builds, so some of these tests are
+    run in CI.
+- `GITHUB_APP_PRIVATE_KEY` - the contents of the private key file of the same app as
+    above.
 
-    If the environment variable isn't found, the tests will be skipped. This is
-    currently the case for our GitHub Actions setup.
+    If this environment variable isn't found, the App tests will be skipped.
+- `CI` - this env var must *NOT* be set, or the tests that post comments to PRs will be
+    skipped. By default, `CI=true` in GitHub Actions, so we'll never run these PR
+    comment tests in the CI build. (We still run other GitHub App-authenticated
+    integration tests.)
 
 License information
 -------------------

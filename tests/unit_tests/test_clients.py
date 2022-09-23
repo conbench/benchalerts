@@ -13,37 +13,35 @@
 # limitations under the License.
 
 import pytest
-from mocks import MockAdapter
 
 from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
+from .mocks import MockAdapter
 
+
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
 class TestGitHubRepoClient:
     @property
     def gh(self):
         return GitHubRepoClient("some/repo", adapter=MockAdapter())
 
-    def test_github_fails_missing_env(self, missing_github_env):
-        with pytest.raises(ValueError, match="GITHUB_API_TOKEN"):
-            self.gh
-
-    def test_create_pull_request_comment_with_number(self, github_env):
+    def test_create_pull_request_comment_with_number(self, github_auth):
         output = self.gh.create_pull_request_comment(comment="test", pull_number=1347)
         assert output["body"] == "test"
 
-    def test_create_pull_request_comment_with_sha(self, github_env):
+    def test_create_pull_request_comment_with_sha(self, github_auth):
         output = self.gh.create_pull_request_comment(comment="test", commit_sha="abc")
         assert output["body"] == "test"
 
-    def test_create_pull_request_comment_bad_input(self, github_env):
+    def test_create_pull_request_comment_bad_input(self, github_auth):
         with pytest.raises(ValueError, match="missing"):
             self.gh.create_pull_request_comment(comment="test")
 
-    def test_comment_with_sha_fails_with_no_matching_prs(self, github_env):
+    def test_comment_with_sha_fails_with_no_matching_prs(self, github_auth):
         with pytest.raises(ValueError, match="pull request"):
             self.gh.create_pull_request_comment(comment="test", commit_sha="no_prs")
 
-    def test_update_commit_status(self, github_env):
+    def test_update_commit_status(self, github_auth):
         res = self.gh.update_commit_status(
             commit_sha="abc",
             title="tests",
@@ -53,7 +51,7 @@ class TestGitHubRepoClient:
         )
         assert res["description"] == "Testing something"
 
-    def test_update_commit_status_bad_state(self, github_env):
+    def test_update_commit_status_bad_state(self, github_auth):
         with pytest.raises(TypeError, match="StatusState"):
             self.gh.update_commit_status(
                 commit_sha="abc",
@@ -62,6 +60,23 @@ class TestGitHubRepoClient:
                 state="sorta working",
                 details_url="https://conbench.biz/",
             )
+
+
+@pytest.mark.parametrize("github_auth", ["none"], indirect=True)
+class TestMissingGithubEnvVars:
+    def test_no_vars_at_all(self, github_auth):
+        with pytest.raises(ValueError, match="GITHUB_API_TOKEN"):
+            TestGitHubRepoClient().gh
+
+    def test_no_app_id(self, github_auth, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("GITHUB_APP_PRIVATE_KEY", "private key")
+        with pytest.raises(ValueError, match="GITHUB_APP_ID"):
+            TestGitHubRepoClient().gh
+
+    def test_no_app_pk(self, github_auth, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("GITHUB_APP_ID", "123456")
+        with pytest.raises(ValueError, match="GITHUB_APP_PRIVATE_KEY"):
+            TestGitHubRepoClient().gh
 
 
 class TestConbenchClient:

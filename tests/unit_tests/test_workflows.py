@@ -13,15 +13,17 @@
 # limitations under the License.
 
 import pytest
-from mocks import MockAdapter
 
 import benchalerts.workflows as flows
 from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
+from .mocks import MockAdapter
+
 
 @pytest.mark.parametrize("z_score_threshold", [None, 500])
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
 def test_update_github_status_based_on_regressions(
-    github_env, conbench_env, z_score_threshold
+    github_auth, conbench_env, z_score_threshold
 ):
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
@@ -32,8 +34,9 @@ def test_update_github_status_based_on_regressions(
     assert res["description"] == "Testing something"
 
 
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
 def test_update_github_status_based_on_regressions_failure(
-    github_env, missing_conbench_env
+    github_auth, missing_conbench_env
 ):
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
 

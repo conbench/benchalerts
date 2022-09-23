@@ -15,9 +15,10 @@
 from copy import deepcopy
 
 import pytest
-from mocks import MockResponse, response_dir
 
 from benchalerts.parse_conbench import benchmarks_with_z_regressions
+
+from .mocks import MockResponse, response_dir
 
 
 def all_comparisons(include_regressions: bool):

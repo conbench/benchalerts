@@ -21,16 +21,14 @@ import benchalerts.workflows as flows
 from benchalerts.clients import GitHubRepoClient
 
 
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
 @pytest.mark.parametrize("z_score_threshold", [None, 500])
 def test_update_github_status_based_on_regressions(
-    monkeypatch: pytest.MonkeyPatch, z_score_threshold
+    monkeypatch: pytest.MonkeyPatch, github_auth: str, z_score_threshold
 ):
     """While this test is running, you can watch
     https://github.com/conbench/benchalerts/pull/5 to see the statuses change!
     """
-    if not os.getenv("GITHUB_API_TOKEN"):
-        pytest.skip("GITHUB_API_TOKEN env var not found")
-
     # note: something *might* go wrong if we go past 1000 statuses on this test SHA?
     # https://docs.github.com/en/rest/commits/statuses#create-a-commit-status
     test_status_repo = "conbench/benchalerts"
@@ -51,7 +49,7 @@ def test_update_github_status_based_on_regressions(
         )
 
     # sleep to see the updated status on the PR
-    time.sleep(3)
+    time.sleep(1)
 
     # next, a success if z_score_threshold=500, or failure if z_score_threshold=None
     monkeypatch.setenv("CONBENCH_URL", arrow_conbench_url)
@@ -66,9 +64,18 @@ def test_update_github_status_based_on_regressions(
 
     github = GitHubDifferentRepoClient(repo=test_status_repo)
 
-    flows.update_github_status_based_on_regressions(
+    res = flows.update_github_status_based_on_regressions(
         contender_sha=arrow_commit, z_score_threshold=z_score_threshold, github=github
     )
+    if z_score_threshold is None:
+        assert res["state"] == "failure"
+    else:
+        assert res["state"] == "success"
+
+    if github_auth == "pat":
+        assert res["creator"]["type"] == "User"
+    elif github_auth == "app":
+        assert res["creator"]["type"] == "Bot"
 
     # sleep to see the updated status on the PR
-    time.sleep(3)
+    time.sleep(1)

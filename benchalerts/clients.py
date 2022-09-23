@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import abc
+import datetime
 import enum
 import os
 import textwrap
 from json import dumps
 from typing import Optional, Tuple
 
+import jwt
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -58,7 +60,8 @@ class _BaseClient(abc.ABC):
         res.raise_for_status()
         return res.json()
 
-    def post(self, path: str, json: dict) -> Optional[dict]:
+    def post(self, path: str, json: dict = None) -> Optional[dict]:
+        json = json or {}
         url = self.base_url + path
         log.debug(f"POST {url} {dumps(json)}")
         res = self.session.post(url=url, json=json, timeout=self.timeout_s)
@@ -67,8 +70,77 @@ class _BaseClient(abc.ABC):
             return res.json()
 
 
+class GitHubAppClient(_BaseClient):
+    """A client to interact with a GitHub App.
+
+    Parameters
+    ----------
+    adapter
+        A requests adapter to mount to the requests session. If not given, one will be
+        created with a backoff retry strategy.
+
+    Environment variables
+    ---------------------
+    GITHUB_APP_ID
+        The numeric GitHub App ID you can get from its settings page.
+    GITHUB_APP_PRIVATE_KEY
+        The full contents of the private key file downloaded from the App's settings
+        page.
+    """
+
+    def __init__(self, adapter: Optional[HTTPAdapter] = None):
+        app_id = os.getenv("GITHUB_APP_ID")
+        if not app_id:
+            fatal_and_log("Environment variable GITHUB_APP_ID not found")
+
+        private_key = os.getenv("GITHUB_APP_PRIVATE_KEY")
+        if not private_key:
+            fatal_and_log("Environment variable GITHUB_APP_PRIVATE_KEY not found")
+
+        super().__init__(adapter=adapter)
+        encoded_jwt = self._encode_jwt(app_id=app_id, private_key=private_key)
+        self.session.headers = {"Authorization": f"Bearer {encoded_jwt}"}
+        self.base_url = "https://api.github.com/app"
+
+    @staticmethod
+    def _encode_jwt(app_id: str, private_key: str) -> str:
+        """Create, sign, and encode a JSON web token to use for GitHub App endpoints."""
+        payload = {
+            "iss": app_id,
+            "iat": datetime.datetime.utcnow() - datetime.timedelta(minutes=1),
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=10),
+        }
+        encoded_jwt = jwt.encode(payload=payload, key=private_key, algorithm="RS256")
+        return encoded_jwt
+
+    def get_app_access_token(self) -> str:
+        """Authenticate as the GitHub App and generate an app installation access token.
+
+        The token lasts for 1 hour, which should be plenty of time to do anything this
+        package needs to do.
+
+        Returns
+        -------
+        str
+            A temporary API token to use for the GitHub API endpoints that the app has
+            permission to access.
+        """
+        # We tell developers to create a new app for each organization, so they can
+        # control the private key. So there should be exactly 1 installation here.
+        # (Note: 1 installation could have multiple repos in the same organization.)
+        installations = self.get("/installations")
+        install_id = installations[0]["id"]
+
+        token_info = self.post(f"/installations/{install_id}/access_tokens")
+        return token_info["token"]
+
+
 class GitHubRepoClient(_BaseClient):
     """A client to interact with a GitHub repo.
+
+    You may authenticate with the GitHub API using a GitHub Personal Access Token or a
+    GitHub App. The correct environment variables must be set depending on which method
+    of authentication you're using. If all are set, the App method will be used.
 
     Parameters
     ----------
@@ -80,14 +152,26 @@ class GitHubRepoClient(_BaseClient):
 
     Environment variables
     ---------------------
+    GITHUB_APP_ID
+        The numeric GitHub App ID you can get from its settings page. Only used for
+        GitHub App authentication.
+    GITHUB_APP_PRIVATE_KEY
+        The full contents of the private key file downloaded from the App's settings
+        page. Only used for GitHub App authentication.
     GITHUB_API_TOKEN
-        A GitHub API token with ``repo`` access.
+        A GitHub API token with ``repo`` access. Only used for Personal Access Token
+        authentication.
     """
 
     def __init__(self, repo: str, adapter: Optional[HTTPAdapter] = None):
-        token = os.getenv("GITHUB_API_TOKEN")
-        if not token:
-            fatal_and_log("Environment variable GITHUB_API_TOKEN not found")
+        if os.getenv("GITHUB_APP_ID") or os.getenv("GITHUB_APP_PRIVATE_KEY"):
+            log.info("Attempting to authenticate as a GitHub App.")
+            app_client = GitHubAppClient(adapter=adapter)
+            token = app_client.get_app_access_token()
+        else:
+            token = os.getenv("GITHUB_API_TOKEN")
+            if not token:
+                fatal_and_log("Environment variable GITHUB_API_TOKEN not found.")
 
         super().__init__(adapter=adapter)
         self.session.headers = {"Authorization": f"Bearer {token}"}

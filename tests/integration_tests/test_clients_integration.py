@@ -19,7 +19,8 @@ import pytest
 from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
 
-def test_create_pull_request_comment():
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
+def test_create_pull_request_comment(github_auth: str):
     if os.getenv("CI"):
         pytest.skip("Don't post a PR comment from CI")
 
@@ -27,7 +28,10 @@ def test_create_pull_request_comment():
     res = gh.create_pull_request_comment(
         "posted from an integration test", commit_sha="adc9b73"
     )
-    assert res
+    if github_auth == "pat":
+        assert res["user"]["type"] == "User"
+    elif github_auth == "app":
+        assert res["user"]["type"] == "Bot"
 
 
 @pytest.mark.parametrize(
