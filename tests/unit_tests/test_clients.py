@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import pytest
+import requests
+from _pytest.logging import LogCaptureFixture
 
 from benchalerts.clients import ConbenchClient, GitHubRepoClient
 
@@ -101,3 +103,13 @@ class TestConbenchClient:
     def test_comparison_fails_when_no_runs(self, conbench_env):
         with pytest.raises(ValueError, match="runs"):
             self.cb.get_comparison_to_baseline("no_runs")
+
+    @pytest.mark.parametrize("path", ["/error_with_content", "/error_without_content"])
+    def test_client_error_handling(self, conbench_env, path, caplog: LogCaptureFixture):
+        with pytest.raises(requests.HTTPError, match="404"):
+            self.cb.get(path)
+
+        if path == "/error_with_content":
+            assert 'Response content: {"code":' in caplog.text
+        else:
+            assert "Response content: None" in caplog.text

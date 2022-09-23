@@ -57,7 +57,7 @@ class _BaseClient(abc.ABC):
         url = self.base_url + path
         log.debug(f"GET {url} {params=}")
         res = self.session.get(url=url, params=params, timeout=self.timeout_s)
-        res.raise_for_status()
+        self._maybe_raise(res)
         return res.json()
 
     def post(self, path: str, json: dict = None) -> Optional[dict]:
@@ -65,9 +65,21 @@ class _BaseClient(abc.ABC):
         url = self.base_url + path
         log.debug(f"POST {url} {dumps(json)}")
         res = self.session.post(url=url, json=json, timeout=self.timeout_s)
-        res.raise_for_status()
+        self._maybe_raise(res)
         if res.content:
             return res.json()
+
+    @staticmethod
+    def _maybe_raise(res: requests.Response):
+        try:
+            res.raise_for_status()
+        except requests.HTTPError as e:
+            try:
+                res_content = e.response.content.decode()
+            except AttributeError:
+                res_content = e.response.content
+            log.error(f"Response content: {res_content}")
+            raise
 
 
 class GitHubAppClient(_BaseClient):
