@@ -63,6 +63,27 @@ class TestGitHubRepoClient:
                 details_url="https://conbench.biz/",
             )
 
+    @pytest.mark.parametrize("in_progress", [True, False])
+    def test_update_check(self, github_auth, in_progress):
+        res = self.gh.update_check(
+            name="tests",
+            commit_sha="abc",
+            status=(
+                self.gh.CheckStatus.IN_PROGRESS
+                if in_progress
+                else self.gh.CheckStatus.SUCCESS
+            ),
+            title="This was good",
+            summary="Testing something",
+            details="Some details",
+            details_url="https://conbench.biz/",
+        )
+        assert res["output"]["summary"] == "Testing something"
+
+    def test_update_check_bad_status(self, github_auth):
+        with pytest.raises(TypeError, match="CheckStatus"):
+            self.gh.update_check(name="tests", commit_sha="abc", status="okay")
+
 
 @pytest.mark.parametrize("github_auth", ["none"], indirect=True)
 class TestMissingGithubEnvVars:
@@ -97,8 +118,9 @@ class TestConbenchClient:
         assert not baseline_is_parent
         assert isinstance(comparisons, dict)
         assert len(comparisons) == 1
-        assert isinstance(comparisons["some_contender"], list)
-        assert len(comparisons["some_contender"]) == 2
+        key = "https://conbench.biz/api/compare/runs/some_baseline...some_contender"
+        assert isinstance(comparisons[key], list)
+        assert len(comparisons[key]) == 2
 
     def test_comparison_fails_when_no_runs(self, conbench_env):
         with pytest.raises(ValueError, match="runs"):

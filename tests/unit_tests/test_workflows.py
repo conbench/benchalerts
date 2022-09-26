@@ -22,36 +22,54 @@ from .mocks import MockAdapter
 
 @pytest.mark.parametrize("z_score_threshold", [None, 500])
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
-def test_update_github_status_based_on_regressions(
-    github_auth, conbench_env, z_score_threshold
-):
+@pytest.mark.parametrize(
+    "workflow",
+    [
+        flows.update_github_status_based_on_regressions,
+        flows.update_github_check_based_on_regressions,
+    ],
+)
+def test_flows(github_auth, conbench_env, z_score_threshold, workflow):
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
 
-    res = flows.update_github_status_based_on_regressions(
+    res = workflow(
         contender_sha="abc", z_score_threshold=z_score_threshold, github=gh, conbench=cb
     )
-    assert res["description"] == "Testing something"
+    if workflow == flows.update_github_status_based_on_regressions:
+        assert res["description"] == "Testing something"
+    elif workflow == flows.update_github_check_based_on_regressions:
+        assert res["output"]["summary"] == "Testing something"
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
-def test_update_github_status_based_on_regressions_failure(
-    github_auth, missing_conbench_env
-):
+@pytest.mark.parametrize(
+    "workflow",
+    [
+        flows.update_github_status_based_on_regressions,
+        flows.update_github_check_based_on_regressions,
+    ],
+)
+def test_flows_failure(github_auth, missing_conbench_env, workflow):
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
 
     with pytest.raises(ValueError, match="not found"):
-        flows.update_github_status_based_on_regressions(contender_sha="abc", github=gh)
+        workflow(contender_sha="abc", github=gh)
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
+@pytest.mark.parametrize(
+    "workflow",
+    [
+        flows.update_github_status_based_on_regressions,
+        flows.update_github_check_based_on_regressions,
+    ],
+)
 def test_update_github_status_based_on_regressions_no_baseline(
-    github_auth, conbench_env
+    github_auth, conbench_env, workflow
 ):
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
 
-    res = flows.update_github_status_based_on_regressions(
-        contender_sha="no_baseline", github=gh, conbench=cb
-    )
+    res = workflow(contender_sha="no_baseline", github=gh, conbench=cb)
     assert res["description"] == "Could not find any baseline runs to compare to"

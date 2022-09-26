@@ -284,6 +284,88 @@ class GitHubRepoClient(_BaseClient):
 
         return self.post(f"/statuses/{commit_sha}", json=json)
 
+    class CheckStatus(str, enum.Enum):
+        # statuses
+        QUEUED = "queued"
+        IN_PROGRESS = "in_progress"
+        # conclusions
+        ACTION_REQUIRED = "action_required"
+        CANCELLED = "cancelled"
+        FAILURE = "failure"
+        NEUTRAL = "neutral"
+        SUCCESS = "success"
+        SKIPPED = "skipped"
+        TIMED_OUT = "timed_out"
+
+    def update_check(
+        self,
+        name: str,
+        commit_sha: str,
+        status: Optional[CheckStatus] = None,
+        title: Optional[str] = None,
+        summary: Optional[str] = None,
+        details: Optional[str] = None,
+        details_url: Optional[str] = None,
+    ):
+        """Adds a new (or updates an existing) GitHub Check on a commit.
+
+        A GitHub Check is a more fully-featured commit status, but you must be
+        authenticated as a GitHub App to update checks. Subsequent uses of this method
+        with the same ``name`` will overwrite the previous check.
+
+        Parameters
+        ----------
+        name
+            The name of the check. Subsequent updates with the same name will overwrite
+            the previous check.
+        commit_sha
+            The 40-character SHA of the commit to update.
+        status
+            The overall check status. Must be one of the GitHubRepoClient.CheckStatus
+            enum values. If it's QUEUED or IN_PROGRESS, the "started_at" field will be
+            sent in the payload with the current time in UTC. If it's another value,
+            the "completed_at" field will be sent instead.
+        title
+            The short title of the check results. Default None. If supplied, summary
+            must be supplied.
+        summary
+            A longer summary of the check results. Supports Markdown. Default None. If
+            supplied, title must be supplied.
+        details
+            Details about the check results. Supports Markdown. Default None.
+        details_url
+            A URL to be linked to when clicking on check Details. Default None.
+
+        Returns
+        -------
+        dict
+            GitHub's details about the new status.
+        """
+        json = {"name": name, "head_sha": commit_sha}
+
+        if status:
+            if status in [self.CheckStatus.QUEUED, self.CheckStatus.IN_PROGRESS]:
+                json["status"] = status.value
+                json["started_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+            elif isinstance(status, self.CheckStatus):
+                json["conclusion"] = status.value
+                json["completed_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+            elif status is not None:
+                fatal_and_log(
+                    "status must be a GitHubRepoClient.CheckStatus or None",
+                    etype=TypeError,
+                )
+
+        if title:
+            json["output"] = {"title": title, "summary": summary}
+            if details:
+                json["output"]["text"] = details
+
+        if details_url:
+            json["details_url"] = details_url
+
+        return self.post("/check-runs", json=json)
+
 
 class ConbenchClient(_BaseClient):
     """A client to interact with a Conbench server.
@@ -344,7 +426,7 @@ class ConbenchClient(_BaseClient):
         Returns
         -------
         dict
-            A dict where keys are contender run_ids and values are lists of dicts
+            A dict where keys are compare URLs and values are lists of dicts
             containing benchmark comparison information.
         bool
             True if all the baseline runs were found on the immediate parent of the
@@ -380,7 +462,7 @@ class ConbenchClient(_BaseClient):
             path = f"/compare/runs/{baseline_info['id']}...{contender_info['id']}"
             params = {"threshold_z": z_score_threshold} if z_score_threshold else None
             comparison = self.get(path, params=params)
-            comparisons[contender_info["id"]] = comparison
+            comparisons[self.base_url + path] = comparison
 
         if not comparisons:
             baseline_is_parent = False

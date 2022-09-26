@@ -16,7 +16,11 @@ from copy import deepcopy
 
 import pytest
 
-from benchalerts.parse_conbench import benchmarks_with_z_regressions
+from benchalerts.parse_conbench import (
+    benchmarks_with_z_regressions,
+    regression_details,
+    regression_summary,
+)
 
 from .mocks import MockResponse, response_dir
 
@@ -29,8 +33,8 @@ def all_comparisons(include_regressions: bool):
     compare_file = response_dir / compare_json
     comparisons = MockResponse.from_file(compare_file).json()
     return {
-        "run_id_1": deepcopy(comparisons),
-        "run_id_2": deepcopy(comparisons),
+        "compare_url_1": deepcopy(comparisons),
+        "compare_url_2": deepcopy(comparisons),
     }
 
 
@@ -38,11 +42,25 @@ def all_comparisons(include_regressions: bool):
 def test_benchmarks_with_z_regressions(include_regressions):
     if include_regressions:
         expected = [
-            ("run_id_1", "snappy, nyctaxi_sample, parquet, arrow"),
-            ("run_id_2", "snappy, nyctaxi_sample, parquet, arrow"),
+            ("compare_url_1", "snappy, nyctaxi_sample, parquet, arrow"),
+            ("compare_url_2", "snappy, nyctaxi_sample, parquet, arrow"),
         ]
     else:
         expected = []
 
     actual = benchmarks_with_z_regressions(all_comparisons(include_regressions))
     assert actual == expected
+
+
+def test_regression_summary():
+    res = regression_summary(all_comparisons(True), False, "abc")
+    # don't test the content of this because it would be hard to keep up
+    print(res)
+    assert res
+
+
+def test_regression_details():
+    res = regression_details(all_comparisons(True))
+    # don't test the content of this because it would be hard to keep up
+    print(res)
+    assert res
