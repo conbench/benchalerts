@@ -83,6 +83,7 @@ follow these instructions.
     - Repository > Commit statuses > Read and Write
     - Repository > Pull requests > Read and Write
 1. After creating the App, save the App ID for later.
+1. For the App's photo, use [this one](https://avatars.githubusercontent.com/u/61704591).
 1. In the App Settings, scroll down to Private Keys and generate a private key. This
     will download a file to your computer. Treat the contents of this file like a
     password.
