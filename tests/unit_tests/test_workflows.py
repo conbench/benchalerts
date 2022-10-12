@@ -42,3 +42,16 @@ def test_update_github_status_based_on_regressions_failure(
 
     with pytest.raises(ValueError, match="not found"):
         flows.update_github_status_based_on_regressions(contender_sha="abc", github=gh)
+
+
+@pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
+def test_update_github_status_based_on_regressions_no_baseline(
+    github_auth, conbench_env
+):
+    gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
+    cb = ConbenchClient(adapter=MockAdapter())
+
+    res = flows.update_github_status_based_on_regressions(
+        contender_sha="no_baseline", github=gh, conbench=cb
+    )
+    assert res["description"] == "Could not find any baseline runs to compare to"

@@ -104,6 +104,16 @@ class TestConbenchClient:
         with pytest.raises(ValueError, match="runs"):
             self.cb.get_comparison_to_baseline("no_runs")
 
+    def test_comparison_warns_when_no_baseline(
+        self, conbench_env, caplog: LogCaptureFixture
+    ):
+        comparisons, baseline_is_parent = self.cb.get_comparison_to_baseline(
+            "no_baseline"
+        )
+        assert not comparisons
+        assert not baseline_is_parent
+        assert "could not find a baseline run" in caplog.text
+
     @pytest.mark.parametrize("path", ["/error_with_content", "/error_without_content"])
     def test_client_error_handling(self, conbench_env, path, caplog: LogCaptureFixture):
         with pytest.raises(requests.HTTPError, match="404"):

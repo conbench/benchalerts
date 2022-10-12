@@ -363,8 +363,16 @@ class ConbenchClient(_BaseClient):
         log.info(f"Getting comparisons from {len(contender_runs)} runs")
         for run in contender_runs:
             contender_info = self.get(f"/runs/{run['id']}/")
-            baseline_path = contender_info["links"]["baseline"].split("/api")[-1]
-            baseline_info = self.get(baseline_path)
+            baseline_link: Optional[str] = contender_info["links"]["baseline"]
+            if not baseline_link:
+                log.warning(
+                    f"Conbench could not find a baseline run for run_id {run['id']}. "
+                    "A baseline run needs to be on the default branch, with the same "
+                    "hardware, repository, case, and context as the contender run."
+                )
+                continue
+
+            baseline_info = self.get(baseline_link.split("/api")[-1])
 
             if baseline_info["commit"]["sha"] != contender_info["commit"]["parent_sha"]:
                 baseline_is_parent = False
@@ -373,5 +381,8 @@ class ConbenchClient(_BaseClient):
             params = {"threshold_z": z_score_threshold} if z_score_threshold else None
             comparison = self.get(path, params=params)
             comparisons[contender_info["id"]] = comparison
+
+        if not comparisons:
+            baseline_is_parent = False
 
         return comparisons, baseline_is_parent

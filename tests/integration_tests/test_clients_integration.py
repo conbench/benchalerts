@@ -49,6 +49,12 @@ def test_create_pull_request_comment(github_auth: str):
             1,
             False,
         ),
+        (
+            "https://velox-conbench.voltrondata.run",
+            "b74e7045fade737e39b0f9867bc8b8b23fe00b78",
+            0,
+            False,
+        ),
     ],
 )
 def test_get_comparison_to_baseline(
