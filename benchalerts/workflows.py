@@ -115,7 +115,10 @@ def update_github_status_based_on_regressions(
         regressions = benchmarks_with_z_regressions(all_comparisons)
         log.info(f"Found the following regressions: {regressions}")
 
-        if regressions:
+        if not all_comparisons:
+            desc = "Could not find any baseline runs to compare to"
+            state = github.StatusState.SUCCESS
+        elif regressions:
             desc = f"There were {len(regressions)} benchmark regressions in this commit"
             state = github.StatusState.FAILURE
         else:
