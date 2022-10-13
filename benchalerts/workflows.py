@@ -20,6 +20,7 @@ from .log import log
 from .parse_conbench import (
     _clean,
     benchmarks_with_z_regressions,
+    regression_check_status,
     regression_details,
     regression_summary,
 )
@@ -147,6 +148,7 @@ def update_github_status_based_on_regressions(
 def update_github_check_based_on_regressions(
     contender_sha: str,
     z_score_threshold: Optional[float] = None,
+    warn_if_baseline_isnt_parent: bool = True,
     repo: Optional[str] = None,
     github: Optional[GitHubRepoClient] = None,
     conbench: Optional[ConbenchClient] = None,
@@ -166,6 +168,11 @@ def update_github_check_based_on_regressions(
         The (positive) z-score threshold. Benchmarks with a z-score more extreme than
         this threshold will be marked as regressions. Default is to use whatever
         conbench uses for default.
+    warn_if_baseline_isnt_parent
+        If True, will add a warning to all reports generated where the baseline commit
+        isn't the contender commit's direct parent. This is good to leave True for
+        workflows run on the default branch, but might be noisy for workflows run on
+        pull request commits.
     repo
         The repo name to post the status to, in the form 'owner/repo'. Either provide
         this or ``github``.
@@ -238,20 +245,21 @@ def update_github_check_based_on_regressions(
         all_comparisons, baseline_is_parent = conbench.get_comparison_to_baseline(
             contender_sha=contender_sha, z_score_threshold=z_score_threshold
         )
-
         regressions = benchmarks_with_z_regressions(all_comparisons)
-        summary = regression_summary(all_comparisons, baseline_is_parent, contender_sha)
-        details = regression_details(all_comparisons)
 
+        status = regression_check_status(all_comparisons)
+        summary = regression_summary(
+            all_comparisons,
+            baseline_is_parent,
+            contender_sha,
+            warn_if_baseline_isnt_parent,
+        )
+        details = regression_details(all_comparisons)
         # point to the homepage table filtered to runs of this commit
         url = f"{os.environ['CONBENCH_URL']}/?search={contender_sha}"
 
         return update_check(
-            status=(
-                github.CheckStatus.FAILURE
-                if regressions
-                else github.CheckStatus.SUCCESS
-            ),
+            status=status,
             title=f"Found {len(regressions)} regression(s)",
             summary=summary,
             details=details,
@@ -266,7 +274,7 @@ def update_github_check_based_on_regressions(
             error that must be resolved before we can find out.
             """
         )
-        details = f"Error: {repr(e)}\n\nSee build link below."
+        details = f"Error: `{repr(e)}`\n\nSee build link below."
         update_check(
             status=github.CheckStatus.NEUTRAL,
             title="Error when finding regressions",

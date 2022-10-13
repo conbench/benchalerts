@@ -15,6 +15,8 @@
 import textwrap
 from typing import List, Tuple
 
+from .clients import GitHubRepoClient
+
 
 def _clean(text: str) -> str:
     """Clean text so it displays nicely as GitHub Markdown."""
@@ -45,9 +47,21 @@ def benchmarks_with_z_regressions(all_comparisons: dict) -> List[Tuple[str, str]
 
 
 def regression_summary(
-    all_comparisons: dict, baseline_is_parent: bool, contender_sha: str
+    all_comparisons: dict,
+    baseline_is_parent: bool,
+    contender_sha: str,
+    warn_if_baseline_isnt_parent: bool,
 ) -> str:
     """Generate a Markdown summary of what happened regarding regressions."""
+    if not all_comparisons:
+        return _clean(
+            f"""
+            Conbench could not find a baseline run for contender commit
+            `{contender_sha[:8]}`. A baseline run needs to be on the default branch,
+            with the same hardware, repository, case, and context as the contender run.
+            """
+        )
+
     regressions = benchmarks_with_z_regressions(all_comparisons)
     summary = _clean(
         f"""
@@ -61,12 +75,12 @@ def regression_summary(
         previous_compare_url = ""
         for compare_url, benchmark in regressions:
             if compare_url != previous_compare_url:
-                run_id = compare_url[-32:]
+                run_id = compare_url.split("...")[1]
                 summary += f"\n\n- Run ID [{run_id}]({compare_url})"
                 previous_compare_url = compare_url
             summary += f"\n  - `{benchmark}`"
 
-    if not baseline_is_parent:
+    if not baseline_is_parent and warn_if_baseline_isnt_parent:
         summary += "\n\n" + _clean(
             """
             ### Note
@@ -82,6 +96,9 @@ def regression_summary(
 
 def regression_details(all_comparisons: dict) -> str:
     """Generate Markdown details of what happened regarding regressions."""
+    if not all_comparisons:
+        return None
+
     z_score_threshold = next(iter(all_comparisons.values()))[0]["threshold_z"]
     details = _clean(
         f"""\
@@ -94,3 +111,15 @@ def regression_details(all_comparisons: dict) -> str:
         """
     )
     return textwrap.dedent(details)
+
+
+def regression_check_status(all_comparisons: dict) -> GitHubRepoClient.CheckStatus:
+    """Return a different status based on regressions."""
+    regressions = benchmarks_with_z_regressions(all_comparisons)
+
+    if not all_comparisons:
+        return GitHubRepoClient.CheckStatus.SKIPPED
+    elif regressions:
+        return GitHubRepoClient.CheckStatus.FAILURE
+    else:
+        return GitHubRepoClient.CheckStatus.SUCCESS
