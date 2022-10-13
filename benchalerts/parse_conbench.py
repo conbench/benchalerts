@@ -85,9 +85,8 @@ def regression_summary(
             """
             ### Note
 
-            The baseline commit was not the immediate parent of the contender commit. If
-            this is a pull request, that's probably okay, because the baseline is the
-            commit from which your branch branched.
+            The baseline commit was not the immediate parent of the contender commit.
+            See the link below for details.
             """
         )
 
@@ -110,7 +109,7 @@ def regression_details(all_comparisons: dict) -> str:
         total time taken).
         """
     )
-    return textwrap.dedent(details)
+    return details
 
 
 def regression_check_status(all_comparisons: dict) -> GitHubRepoClient.CheckStatus:
@@ -118,8 +117,11 @@ def regression_check_status(all_comparisons: dict) -> GitHubRepoClient.CheckStat
     regressions = benchmarks_with_z_regressions(all_comparisons)
 
     if not all_comparisons:
+        # no baseline runs found
         return GitHubRepoClient.CheckStatus.SKIPPED
     elif regressions:
+        # at least one regression
         return GitHubRepoClient.CheckStatus.FAILURE
     else:
+        # no regressions
         return GitHubRepoClient.CheckStatus.SUCCESS
