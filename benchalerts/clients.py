@@ -301,7 +301,7 @@ class GitHubRepoClient(_BaseClient):
         self,
         name: str,
         commit_sha: str,
-        status: Optional[CheckStatus] = None,
+        status: CheckStatus,
         title: Optional[str] = None,
         summary: Optional[str] = None,
         details: Optional[str] = None,
@@ -343,18 +343,16 @@ class GitHubRepoClient(_BaseClient):
         """
         json = {"name": name, "head_sha": commit_sha}
 
-        if status:
-            if status in [self.CheckStatus.QUEUED, self.CheckStatus.IN_PROGRESS]:
-                json["status"] = status.value
-                json["started_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-            elif isinstance(status, self.CheckStatus):
-                json["conclusion"] = status.value
-                json["completed_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-            elif status is not None:
-                fatal_and_log(
-                    "status must be a GitHubRepoClient.CheckStatus or None",
-                    etype=TypeError,
-                )
+        if status in [self.CheckStatus.QUEUED, self.CheckStatus.IN_PROGRESS]:
+            json["status"] = status.value
+            json["started_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+        elif isinstance(status, self.CheckStatus):
+            json["conclusion"] = status.value
+            json["completed_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+        else:
+            fatal_and_log(
+                "status must be a GitHubRepoClient.CheckStatus", etype=TypeError
+            )
 
         if title:
             json["output"] = {"title": title, "summary": summary}
