@@ -57,8 +57,9 @@ def regression_summary(
         return _clean(
             f"""
             Conbench could not find a baseline run for contender commit
-            `{contender_sha[:8]}`. A baseline run needs to be on the default branch,
-            with the same hardware, repository, case, and context as the contender run.
+            `{contender_sha[:8]}`. A baseline run needs to be on the default branch in
+            the same repository, with the same hardware and context, and have at least
+            one of the same benchmark cases.
             """
         )
 
