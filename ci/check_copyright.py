@@ -14,11 +14,16 @@
 
 import argparse
 import datetime
+import fnmatch
 import pathlib
 import subprocess
 from xml.etree import ElementTree
 
-EXCLUSIONS = []
+EXCLUSIONS = ["*.egg-info", "tests/unit_tests/expected_md/*"]
+
+
+def file_is_excluded(file_path):
+    return any([fnmatch.fnmatch(file_path, e) for e in EXCLUSIONS])
 
 
 def check_copyright_headers(rat_jar: pathlib.Path):
@@ -49,11 +54,7 @@ def check_copyright_headers(rat_jar: pathlib.Path):
         filename = file.attrib["name"]
         clean_filename = filename[len(repo_name) :]
         approval_elements = file.findall("license-approval")
-        if (
-            not approval_elements
-            or clean_filename in EXCLUSIONS
-            or ".egg-info" in clean_filename
-        ):
+        if not approval_elements or file_is_excluded(clean_filename):
             # this is a binary file or something else worth skipping
             continue
         elif approval_elements[0].attrib["name"] == "true":

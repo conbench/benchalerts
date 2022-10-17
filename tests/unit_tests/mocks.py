@@ -60,6 +60,12 @@ class MockAdapter(HTTPAdapter):
         req: requests.PreparedRequest = args[0]
         log.info(f"Sent request {req}({req.__dict__}) with kwargs {kwargs}")
 
+        # to help with test_workflows.py, log the markdowns that were posted
+        if req.url.endswith("check-runs"):
+            body = json.loads(req.body)
+            log.info("Summary: " + body["output"]["summary"])
+            log.info("Details: " + str(body["output"].get("text")))
+
         method = req.method
         clean_url = self.clean_base_url(req.url)
         response_path = response_dir / f"{method}_{clean_url}.json"
