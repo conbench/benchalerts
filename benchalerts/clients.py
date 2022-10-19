@@ -17,8 +17,9 @@ import datetime
 import enum
 import os
 import textwrap
+from dataclasses import dataclass
 from json import dumps
-from typing import Optional, Tuple
+from typing import List, Optional
 
 import jwt
 import requests
@@ -399,15 +400,74 @@ class ConbenchClient(_BaseClient):
         if login_creds["email"] and login_creds["password"]:
             self.post("/login/", json=login_creds)
 
+    @dataclass
+    class RunComparison:
+        """Track info about a comparison between a contender run and its baseline."""
+
+        contender_info: dict
+        baseline_info: Optional[dict] = None
+        compare_info: Optional[List[dict]] = None
+
+        @property
+        def baseline_is_parent(self) -> Optional[bool]:
+            """Whether the baseline run is on a commit that's the immediate parent of
+            the contender commit.
+            """
+            if self.baseline_info:
+                return (
+                    self.baseline_info["commit"]["sha"]
+                    == self.contender_info["commit"]["parent_sha"]
+                )
+
+        @property
+        def contender_link(self) -> str:
+            """The link to the contender run page in the webapp."""
+            return f"{self._app_url}/runs/{self.contender_id}"
+
+        @property
+        def compare_link(self) -> Optional[str]:
+            """The link to the run comparison page in the webapp."""
+            if self._compare_path:
+                return self._app_url + self._compare_path
+
+        @property
+        def contender_id(self) -> str:
+            """The contender run_id."""
+            return self.contender_info["id"]
+
+        @property
+        def _baseline_id(self) -> Optional[str]:
+            """The baseline run_id."""
+            if self.baseline_info:
+                return self.baseline_info["id"]
+
+        @property
+        def _app_url(self) -> str:
+            """The base URL to use for links to the webapp."""
+            self_link: str = self.contender_info["links"]["self"]
+            return self_link.rsplit("/api/", 1)[0]
+
+        @property
+        def _compare_path(self) -> Optional[str]:
+            """The API path to get comparisons between the baseline and contender."""
+            if self._baseline_id:
+                return f"/compare/runs/{self._baseline_id}...{self.contender_id}/"
+
+        @property
+        def _baseline_path(self) -> Optional[str]:
+            """The API path to get the baseline info."""
+            baseline_link: Optional[str] = self.contender_info["links"].get("baseline")
+            if baseline_link:
+                return baseline_link.rsplit("/api", 1)[-1]
+
     def get_comparison_to_baseline(
         self, contender_sha: str, z_score_threshold: Optional[float] = None
-    ) -> Tuple[dict, bool]:
+    ) -> List[RunComparison]:
         """Get benchmark comparisons between the given contender commit and its
         baseline commit.
 
         The baseline commit is defined by conbench, and it's typically the most recent
-        ancestor of the contender commit that's on the default branch. This method also
-        returns whether that's the immediate parent of the contender or not.
+        ancestor of the contender commit that's on the default branch.
 
         Parameters
         ----------
@@ -423,46 +483,43 @@ class ConbenchClient(_BaseClient):
 
         Returns
         -------
-        dict
-            A dict where keys are compare URLs and values are lists of dicts
-            containing benchmark comparison information.
-        bool
-            True if all the baseline runs were found on the immediate parent of the
-            contender commit. If False, the contender might be a non-first PR commit, or
-            there could have been commits on the default branch without any logged
-            Conbench runs.
+        List[RunComparison]
+            Information about each run associated with the contender commit, and a
+            comparison to its baseline run if that exists.
         """
-        comparisons = {}
-        baseline_is_parent = True
-        contender_runs = self.get("/runs/", params={"sha": contender_sha})
-        if not contender_runs:
+        out_list = []
+        contender_run_ids = [
+            run["id"] for run in self.get("/runs/", params={"sha": contender_sha})
+        ]
+        if not contender_run_ids:
             fatal_and_log(
                 f"Contender commit '{contender_sha}' doesn't have any runs in conbench."
             )
 
-        log.info(f"Getting comparisons from {len(contender_runs)} runs")
-        for run in contender_runs:
-            contender_info = self.get(f"/runs/{run['id']}/")
-            baseline_link: Optional[str] = contender_info["links"]["baseline"]
-            if not baseline_link:
-                log.warning(
-                    f"Conbench could not find a baseline run for run_id {run['id']}. "
-                    "A baseline run needs to be on the default branch, with the same "
-                    "hardware, repository, case, and context as the contender run."
+        log.info(f"Getting comparisons from {len(contender_run_ids)} run(s)")
+        for run_id in contender_run_ids:
+            run_comparison = self.RunComparison(
+                contender_info=self.get(f"/runs/{run_id}/")
+            )
+
+            if run_comparison._baseline_path:
+                run_comparison.baseline_info = self.get(run_comparison._baseline_path)
+
+                compare_params = (
+                    {"threshold_z": z_score_threshold} if z_score_threshold else None
                 )
-                continue
+                run_comparison.compare_info = self.get(
+                    run_comparison._compare_path, params=compare_params
+                )
 
-            baseline_info = self.get(baseline_link.split("/api")[-1])
+            else:
+                log.warning(
+                    "Conbench could not find a baseline run for the contender run "
+                    f"{run_id}. A baseline run needs to be on the default branch in "
+                    "the same repository, with the same hardware and context, and have "
+                    "at least one of the same benchmark cases."
+                )
 
-            if baseline_info["commit"]["sha"] != contender_info["commit"]["parent_sha"]:
-                baseline_is_parent = False
+            out_list.append(run_comparison)
 
-            path = f"/compare/runs/{baseline_info['id']}...{contender_info['id']}"
-            params = {"threshold_z": z_score_threshold} if z_score_threshold else None
-            comparison = self.get(path, params=params)
-            comparisons[self.base_url + path] = comparison
-
-        if not comparisons:
-            baseline_is_parent = False
-
-        return comparisons, baseline_is_parent
+        return out_list

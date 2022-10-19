@@ -37,23 +37,26 @@ def test_create_pull_request_comment(github_auth: str):
 @pytest.mark.parametrize(
     ["conbench_url", "commit", "expected_len", "expected_bip"],
     [
+        # baseline is parent
         (
             "https://conbench.ursa.dev/",
             "bc7de406564fa7b2bcb9bf055cbaba31ca0ca124",
             8,
             True,
         ),
+        # baseline is not parent
         (
             "https://velox-conbench.voltrondata.run",
             "2319922d288c519baa3bffe59c0bedbcb6c827cd",
             1,
             False,
         ),
+        # no baseline
         (
             "https://velox-conbench.voltrondata.run",
             "b74e7045fade737e39b0f9867bc8b8b23fe00b78",
-            0,
-            False,
+            1,
+            None,
         ),
     ],
 )
@@ -62,10 +65,13 @@ def test_get_comparison_to_baseline(
 ):
     monkeypatch.setenv("CONBENCH_URL", conbench_url)
     cb = ConbenchClient()
-    res = cb.get_comparison_to_baseline(commit)
-    comparisons, baseline_is_parent = res
-    assert baseline_is_parent is expected_bip
+    comparisons = cb.get_comparison_to_baseline(commit)
     assert len(comparisons) == expected_len
-    for comparison in comparisons.values():
-        for benchmark in comparison:
-            assert benchmark["contender_run_id"]
+    for comparison in comparisons:
+        assert comparison.baseline_is_parent is expected_bip
+        assert comparison.contender_link
+        assert comparison.contender_id
+        if comparison.compare_info:
+            assert comparison.compare_link
+            for benchmark in comparison.compare_info:
+                assert benchmark["contender_run_id"]

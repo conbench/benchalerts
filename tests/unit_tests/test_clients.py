@@ -113,14 +113,11 @@ class TestConbenchClient:
 
     @pytest.mark.parametrize("z_score_threshold", [None, 500])
     def test_get_comparison_to_baseline(self, conbench_env, z_score_threshold):
-        output = self.cb.get_comparison_to_baseline("abc", z_score_threshold)
-        comparisons, baseline_is_parent = output
-        assert not baseline_is_parent
-        assert isinstance(comparisons, dict)
+        comparisons = self.cb.get_comparison_to_baseline("abc", z_score_threshold)
+        assert isinstance(comparisons, list)
         assert len(comparisons) == 1
-        key = "https://conbench.biz/api/compare/runs/some_baseline...some_contender"
-        assert isinstance(comparisons[key], list)
-        assert len(comparisons[key]) == 2
+        assert comparisons[0].compare_link
+        assert len(comparisons[0].compare_info) == 2
 
     def test_comparison_fails_when_no_runs(self, conbench_env):
         with pytest.raises(ValueError, match="runs"):
@@ -129,11 +126,12 @@ class TestConbenchClient:
     def test_comparison_warns_when_no_baseline(
         self, conbench_env, caplog: LogCaptureFixture
     ):
-        comparisons, baseline_is_parent = self.cb.get_comparison_to_baseline(
-            "no_baseline"
-        )
-        assert not comparisons
-        assert not baseline_is_parent
+        comparisons = self.cb.get_comparison_to_baseline("no_baseline")
+        assert isinstance(comparisons, list)
+        assert len(comparisons) == 1
+        assert comparisons[0].contender_link
+        assert not comparisons[0].compare_link
+        assert not comparisons[0].baseline_info
         assert "could not find a baseline run" in caplog.text
 
     @pytest.mark.parametrize("path", ["/error_with_content", "/error_without_content"])

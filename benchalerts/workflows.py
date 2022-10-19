@@ -115,13 +115,13 @@ def update_github_status_based_on_regressions(
     # If anything in here fails, we can!
     try:
         conbench = conbench or ConbenchClient()
-        all_comparisons, _ = conbench.get_comparison_to_baseline(
+        comparisons = conbench.get_comparison_to_baseline(
             contender_sha=contender_sha, z_score_threshold=z_score_threshold
         )
-        regressions = benchmarks_with_z_regressions(all_comparisons)
+        regressions = benchmarks_with_z_regressions(comparisons)
         log.info(f"Found the following regressions: {regressions}")
 
-        if not all_comparisons:
+        if not any(comparison.baseline_info for comparison in comparisons):
             desc = "Could not find any baseline runs to compare to"
             state = github.StatusState.SUCCESS
         elif regressions:
@@ -242,19 +242,14 @@ def update_github_check_based_on_regressions(
     # If anything in here fails, we can!
     try:
         conbench = conbench or ConbenchClient()
-        all_comparisons, baseline_is_parent = conbench.get_comparison_to_baseline(
+        comparisons = conbench.get_comparison_to_baseline(
             contender_sha=contender_sha, z_score_threshold=z_score_threshold
         )
-        regressions = benchmarks_with_z_regressions(all_comparisons)
+        regressions = benchmarks_with_z_regressions(comparisons)
 
-        status = regression_check_status(all_comparisons)
-        summary = regression_summary(
-            all_comparisons,
-            baseline_is_parent,
-            contender_sha,
-            warn_if_baseline_isnt_parent,
-        )
-        details = regression_details(all_comparisons)
+        status = regression_check_status(comparisons)
+        summary = regression_summary(comparisons, warn_if_baseline_isnt_parent)
+        details = regression_details(comparisons)
         # point to the homepage table filtered to runs of this commit
         url = f"{os.environ['CONBENCH_URL']}/?search={contender_sha}"
 

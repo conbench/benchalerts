@@ -2,7 +2,7 @@ Contender commit `abc` had 1 regressions compared to its baseline commit.
 
 ### Benchmarks with regressions:
 
-- Run ID [some_contender](https://conbench.biz/api/compare/runs/some_baseline...some_contender)
+- Run ID [some_contender](http://localhost/compare/runs/some_baseline...some_contender/)
   - `snappy, nyctaxi_sample, parquet, arrow`
 
 ### Note
