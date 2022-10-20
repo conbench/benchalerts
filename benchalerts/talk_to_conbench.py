@@ -111,6 +111,8 @@ def get_comparison_to_baseline(
 
     Parameters
     ----------
+    conbench
+        A ConbenchClient instance.
     contender_sha
         The commit SHA of the contender commit to compare. Needs to match EXACTLY what
         conbench has stored; typically 40 characters. It can't be a shortened version of
