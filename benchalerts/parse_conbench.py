@@ -15,7 +15,8 @@
 import textwrap
 from typing import List, Tuple
 
-from .clients import ConbenchClient, GitHubRepoClient
+from .clients import CheckStatus
+from .talk_to_conbench import RunComparison
 
 
 def _clean(text: str) -> str:
@@ -24,21 +25,26 @@ def _clean(text: str) -> str:
 
 
 def benchmarks_with_z_regressions(
-    comparisons: List[ConbenchClient.RunComparison],
+    comparisons: List[RunComparison],
 ) -> List[Tuple[str, str, str]]:
-    """Find the run IDs, webapp links, and display names of benchmarks whose z-scores
-    were extreme enough to constitute a regression.
+    """Find the run IDs, webapp links, and display names of benchmark cases whose
+    z-scores were extreme enough to constitute a regression.
     """
-    return [
-        (comparison.contender_id, comparison.compare_link, benchmark["benchmark"])
-        for comparison in comparisons
-        for benchmark in comparison.compare_info or []
-        if benchmark["contender_z_regression"]
-    ]
+    out = []
+
+    for comparison in comparisons:
+        compare_results = comparison.compare_results or []
+        out += [
+            (comparison.contender_id, comparison.compare_link, case["benchmark"])
+            for case in compare_results
+            if case["contender_z_regression"]
+        ]
+
+    return out
 
 
 def regression_summary(
-    comparisons: List[ConbenchClient.RunComparison], warn_if_baseline_isnt_parent: bool
+    comparisons: List[RunComparison], warn_if_baseline_isnt_parent: bool
 ) -> str:
     """Generate a Markdown summary of what happened regarding regressions."""
     sha = comparisons[0].contender_info["commit"]["sha"][:8]
@@ -86,12 +92,12 @@ def regression_summary(
     return summary
 
 
-def regression_details(comparisons: List[ConbenchClient.RunComparison]) -> str:
+def regression_details(comparisons: List[RunComparison]) -> str:
     """Generate Markdown details of what happened regarding regressions."""
     if not any(comparison.baseline_info for comparison in comparisons):
         return None
 
-    z_score_threshold = comparisons[0].compare_info[0]["threshold_z"]
+    z_score_threshold = comparisons[0].compare_results[0]["threshold_z"]
     details = _clean(
         f"""\
         Conbench has details about {len(comparisons)} total run(s) on this commit.
@@ -106,17 +112,17 @@ def regression_details(comparisons: List[ConbenchClient.RunComparison]) -> str:
 
 
 def regression_check_status(
-    comparisons: List[ConbenchClient.RunComparison],
-) -> GitHubRepoClient.CheckStatus:
+    comparisons: List[RunComparison],
+) -> CheckStatus:
     """Return a different status based on regressions."""
     regressions = benchmarks_with_z_regressions(comparisons)
 
     if not any(comparison.baseline_info for comparison in comparisons):
         # no baseline runs found
-        return GitHubRepoClient.CheckStatus.SKIPPED
+        return CheckStatus.SKIPPED
     elif regressions:
         # at least one regression
-        return GitHubRepoClient.CheckStatus.FAILURE
+        return CheckStatus.FAILURE
     else:
         # no regressions
-        return GitHubRepoClient.CheckStatus.SUCCESS
+        return CheckStatus.SUCCESS

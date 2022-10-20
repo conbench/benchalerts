@@ -18,13 +18,14 @@ from copy import deepcopy
 import pytest
 from _pytest.fixtures import SubRequest
 
-from benchalerts.clients import ConbenchClient, GitHubRepoClient
+from benchalerts.clients import CheckStatus
 from benchalerts.parse_conbench import (
     benchmarks_with_z_regressions,
     regression_check_status,
     regression_details,
     regression_summary,
 )
+from benchalerts.talk_to_conbench import RunComparison
 
 from .mocks import MockResponse, response_dir
 
@@ -34,58 +35,59 @@ def mock_comparisons(request: SubRequest):
     how: str = request.param
 
     def _response(basename: str):
+        """Get a mocked response."""
         filename = basename + ".json"
         return MockResponse.from_file(response_dir / filename).json()
 
-    contender_info = _response("GET_conbench_runs_some_contender")
-    contender_info_2 = deepcopy(contender_info)
-    contender_info_2["id"] += "_2"
+    def _dup_info(basename: str):
+        """Get a mocked response and duplicate it with a different ID."""
+        info = _response(basename)
+        info_2 = deepcopy(info)
+        info_2["id"] += "_2"
+        return info, info_2
 
-    baseline_info = _response("GET_conbench_runs_some_baseline")
-    baseline_info_2 = deepcopy(baseline_info)
-    baseline_info_2["id"] += "_2"
-
-    no_baseline_info = _response("GET_conbench_runs_contender_wo_base")
-    no_baseline_info_2 = deepcopy(contender_info)
-    no_baseline_info_2["id"] += "_2"
-
-    compare_info_noregressions = _response(
+    contender_info, contender_info_2 = _dup_info("GET_conbench_runs_some_contender")
+    baseline_info, baseline_info_2 = _dup_info("GET_conbench_runs_some_baseline")
+    no_baseline_info, no_baseline_info_2 = _dup_info(
+        "GET_conbench_runs_contender_wo_base"
+    )
+    compare_results_noregressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender_threshold_z_500"
     )
-    compare_info_regressions = _response(
+    compare_results_regressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender"
     )
 
     if how == "noregressions":
         return [
-            ConbenchClient.RunComparison(
+            RunComparison(
                 contender_info=contender_info,
                 baseline_info=baseline_info,
-                compare_info=compare_info_noregressions,
+                compare_results=compare_results_noregressions,
             ),
-            ConbenchClient.RunComparison(
+            RunComparison(
                 contender_info=contender_info_2,
                 baseline_info=baseline_info_2,
-                compare_info=compare_info_noregressions,
+                compare_results=compare_results_noregressions,
             ),
         ]
     elif how == "regressions":
         return [
-            ConbenchClient.RunComparison(
+            RunComparison(
                 contender_info=contender_info,
                 baseline_info=baseline_info,
-                compare_info=compare_info_regressions,
+                compare_results=compare_results_regressions,
             ),
-            ConbenchClient.RunComparison(
+            RunComparison(
                 contender_info=contender_info_2,
                 baseline_info=baseline_info_2,
-                compare_info=compare_info_regressions,
+                compare_results=compare_results_regressions,
             ),
         ]
     elif how == "no_baseline":
         return [
-            ConbenchClient.RunComparison(contender_info=no_baseline_info),
-            ConbenchClient.RunComparison(contender_info=no_baseline_info_2),
+            RunComparison(contender_info=no_baseline_info),
+            RunComparison(contender_info=no_baseline_info_2),
         ]
 
 
@@ -165,9 +167,9 @@ def test_regression_details(mock_comparisons, expected_md):
 @pytest.mark.parametrize(
     ["mock_comparisons", "expected_status"],
     [
-        ("noregressions", GitHubRepoClient.CheckStatus.SUCCESS),
-        ("regressions", GitHubRepoClient.CheckStatus.FAILURE),
-        ("no_baseline", GitHubRepoClient.CheckStatus.SKIPPED),
+        ("noregressions", CheckStatus.SUCCESS),
+        ("regressions", CheckStatus.FAILURE),
+        ("no_baseline", CheckStatus.SKIPPED),
     ],
     indirect=["mock_comparisons"],
 )

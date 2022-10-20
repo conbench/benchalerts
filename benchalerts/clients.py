@@ -17,9 +17,8 @@ import datetime
 import enum
 import os
 import textwrap
-from dataclasses import dataclass
 from json import dumps
-from typing import List, Optional
+from typing import Optional
 
 import jwt
 import requests
@@ -148,6 +147,29 @@ class GitHubAppClient(_BaseClient):
         return token_info["token"]
 
 
+# used as inputs to some GitHubRepoClient methods
+class StatusState(str, enum.Enum):
+    ERROR = "error"
+    FAILURE = "failure"
+    PENDING = "pending"
+    SUCCESS = "success"
+
+
+# used as inputs to some GitHubRepoClient methods
+class CheckStatus(str, enum.Enum):
+    # statuses
+    QUEUED = "queued"
+    IN_PROGRESS = "in_progress"
+    # conclusions
+    ACTION_REQUIRED = "action_required"
+    CANCELLED = "cancelled"
+    FAILURE = "failure"
+    NEUTRAL = "neutral"
+    SUCCESS = "success"
+    SKIPPED = "skipped"
+    TIMED_OUT = "timed_out"
+
+
 class GitHubRepoClient(_BaseClient):
     """A client to interact with a GitHub repo.
 
@@ -230,12 +252,6 @@ class GitHubRepoClient(_BaseClient):
         )
         return self.post(f"/issues/{pull_number}/comments", json={"body": comment})
 
-    class StatusState(str, enum.Enum):
-        ERROR = "error"
-        FAILURE = "failure"
-        PENDING = "pending"
-        SUCCESS = "success"
-
     def update_commit_status(
         self,
         commit_sha: str,
@@ -260,8 +276,8 @@ class GitHubRepoClient(_BaseClient):
         description
             The short description of the status.
         state
-            The overall status of the commit. Must be one of the
-            GitHubRepoClient.StatusState enum values.
+            The overall status of the commit. Must be one of the StatusState enum
+            values.
         details_url
             A URL to be linked to when clicking on status Details. Default None.
 
@@ -270,10 +286,8 @@ class GitHubRepoClient(_BaseClient):
         dict
             GitHub's details about the new status.
         """
-        if not isinstance(state, self.StatusState):
-            fatal_and_log(
-                "state must be a GitHubRepoClient.StatusState", etype=TypeError
-            )
+        if not isinstance(state, StatusState):
+            fatal_and_log("state must be a StatusState", etype=TypeError)
 
         json = {
             "state": state.value,
@@ -284,19 +298,6 @@ class GitHubRepoClient(_BaseClient):
             json["target_url"] = details_url
 
         return self.post(f"/statuses/{commit_sha}", json=json)
-
-    class CheckStatus(str, enum.Enum):
-        # statuses
-        QUEUED = "queued"
-        IN_PROGRESS = "in_progress"
-        # conclusions
-        ACTION_REQUIRED = "action_required"
-        CANCELLED = "cancelled"
-        FAILURE = "failure"
-        NEUTRAL = "neutral"
-        SUCCESS = "success"
-        SKIPPED = "skipped"
-        TIMED_OUT = "timed_out"
 
     def update_check(
         self,
@@ -322,10 +323,10 @@ class GitHubRepoClient(_BaseClient):
         commit_sha
             The 40-character SHA of the commit to update.
         status
-            The overall check status. Must be one of the GitHubRepoClient.CheckStatus
-            enum values. If it's QUEUED or IN_PROGRESS, the "started_at" field will be
-            sent in the payload with the current time in UTC. If it's another value,
-            the "completed_at" field will be sent instead.
+            The overall check status. Must be one of the CheckStatus enum values. If
+            it's QUEUED or IN_PROGRESS, the "started_at" field will be sent in the
+            payload with the current time in UTC. If it's another value, the
+            "completed_at" field will be sent instead.
         title
             The short title of the check results. Default None. If supplied, summary
             must be supplied.
@@ -344,16 +345,14 @@ class GitHubRepoClient(_BaseClient):
         """
         json = {"name": name, "head_sha": commit_sha}
 
-        if status in [self.CheckStatus.QUEUED, self.CheckStatus.IN_PROGRESS]:
+        if status in [CheckStatus.QUEUED, CheckStatus.IN_PROGRESS]:
             json["status"] = status.value
             json["started_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-        elif isinstance(status, self.CheckStatus):
+        elif isinstance(status, CheckStatus):
             json["conclusion"] = status.value
             json["completed_at"] = datetime.datetime.utcnow().isoformat() + "Z"
         else:
-            fatal_and_log(
-                "status must be a GitHubRepoClient.CheckStatus", etype=TypeError
-            )
+            fatal_and_log("status must be a CheckStatus", etype=TypeError)
 
         if title:
             json["output"] = {"title": title, "summary": summary}
@@ -399,127 +398,3 @@ class ConbenchClient(_BaseClient):
         }
         if login_creds["email"] and login_creds["password"]:
             self.post("/login/", json=login_creds)
-
-    @dataclass
-    class RunComparison:
-        """Track info about a comparison between a contender run and its baseline."""
-
-        contender_info: dict
-        baseline_info: Optional[dict] = None
-        compare_info: Optional[List[dict]] = None
-
-        @property
-        def baseline_is_parent(self) -> Optional[bool]:
-            """Whether the baseline run is on a commit that's the immediate parent of
-            the contender commit.
-            """
-            if self.baseline_info:
-                return (
-                    self.baseline_info["commit"]["sha"]
-                    == self.contender_info["commit"]["parent_sha"]
-                )
-
-        @property
-        def contender_link(self) -> str:
-            """The link to the contender run page in the webapp."""
-            return f"{self._app_url}/runs/{self.contender_id}"
-
-        @property
-        def compare_link(self) -> Optional[str]:
-            """The link to the run comparison page in the webapp."""
-            if self._compare_path:
-                return self._app_url + self._compare_path
-
-        @property
-        def contender_id(self) -> str:
-            """The contender run_id."""
-            return self.contender_info["id"]
-
-        @property
-        def _baseline_id(self) -> Optional[str]:
-            """The baseline run_id."""
-            if self.baseline_info:
-                return self.baseline_info["id"]
-
-        @property
-        def _app_url(self) -> str:
-            """The base URL to use for links to the webapp."""
-            self_link: str = self.contender_info["links"]["self"]
-            return self_link.rsplit("/api/", 1)[0]
-
-        @property
-        def _compare_path(self) -> Optional[str]:
-            """The API path to get comparisons between the baseline and contender."""
-            if self._baseline_id:
-                return f"/compare/runs/{self._baseline_id}...{self.contender_id}/"
-
-        @property
-        def _baseline_path(self) -> Optional[str]:
-            """The API path to get the baseline info."""
-            baseline_link: Optional[str] = self.contender_info["links"].get("baseline")
-            if baseline_link:
-                return baseline_link.rsplit("/api", 1)[-1]
-
-    def get_comparison_to_baseline(
-        self, contender_sha: str, z_score_threshold: Optional[float] = None
-    ) -> List[RunComparison]:
-        """Get benchmark comparisons between the given contender commit and its
-        baseline commit.
-
-        The baseline commit is defined by conbench, and it's typically the most recent
-        ancestor of the contender commit that's on the default branch.
-
-        Parameters
-        ----------
-        contender_sha
-            The commit SHA of the contender commit to compare. Needs to match EXACTLY
-            what conbench has stored; typically 40 characters. It can't be a shortened
-            version of the SHA.
-        z_score_threshold
-            The (positive) z-score threshold to send to the conbench compare endpoint.
-            Benchmarks with a z-score more extreme than this threshold will be marked as
-            regressions or improvements in the result. Default is to use whatever
-            conbench uses for default.
-
-        Returns
-        -------
-        List[RunComparison]
-            Information about each run associated with the contender commit, and a
-            comparison to its baseline run if that exists.
-        """
-        out_list = []
-        contender_run_ids = [
-            run["id"] for run in self.get("/runs/", params={"sha": contender_sha})
-        ]
-        if not contender_run_ids:
-            fatal_and_log(
-                f"Contender commit '{contender_sha}' doesn't have any runs in conbench."
-            )
-
-        log.info(f"Getting comparisons from {len(contender_run_ids)} run(s)")
-        for run_id in contender_run_ids:
-            run_comparison = self.RunComparison(
-                contender_info=self.get(f"/runs/{run_id}/")
-            )
-
-            if run_comparison._baseline_path:
-                run_comparison.baseline_info = self.get(run_comparison._baseline_path)
-
-                compare_params = (
-                    {"threshold_z": z_score_threshold} if z_score_threshold else None
-                )
-                run_comparison.compare_info = self.get(
-                    run_comparison._compare_path, params=compare_params
-                )
-
-            else:
-                log.warning(
-                    "Conbench could not find a baseline run for the contender run "
-                    f"{run_id}. A baseline run needs to be on the default branch in "
-                    "the same repository, with the same hardware and context, and have "
-                    "at least one of the same benchmark cases."
-                )
-
-            out_list.append(run_comparison)
-
-        return out_list
