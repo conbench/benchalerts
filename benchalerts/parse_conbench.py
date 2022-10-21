@@ -24,6 +24,38 @@ def _clean(text: str) -> str:
     return textwrap.fill(textwrap.dedent(text), 10000).replace("  ", "\n\n").strip()
 
 
+def benchmarks_with_errors(comparisons: List[RunComparison]) -> List[Tuple[str, str]]:
+    """Find the run IDs, webapp links, display names, and error messages of benchmark
+    cases that had errors."""
+    out = []
+
+    for comparison in comparisons:
+        if comparison.compare_results:
+            out += [
+                (
+                    comparison.contender_id,
+                    comparison.compare_link,
+                    case["benchmark"],
+                    case["contender_error"]["message"],
+                )
+                for case in comparison.compare_results
+                if case["contender_error"]
+            ]
+        else:
+            out += [
+                (
+                    comparison.contender_id,
+                    comparison.contender_link,
+                    case["tags"].get("name", str(case["tags"])),
+                    case["error"]["message"],
+                )
+                for case in comparison.benchmark_results or []
+                if case["error"]
+            ]
+
+    return out
+
+
 def benchmarks_with_z_regressions(
     comparisons: List[RunComparison],
 ) -> List[Tuple[str, str, str]]:
@@ -46,11 +78,26 @@ def benchmarks_with_z_regressions(
 def regression_summary(
     comparisons: List[RunComparison], warn_if_baseline_isnt_parent: bool
 ) -> str:
-    """Generate a Markdown summary of what happened regarding regressions."""
+    """Generate a Markdown summary of what happened regarding errors and regressions."""
     sha = comparisons[0].contender_info["commit"]["sha"][:8]
+    errors = benchmarks_with_errors(comparisons)
+    regressions = benchmarks_with_z_regressions(comparisons)
+    summary = ""
+
+    if errors:
+        summary += "# Benchmark errors"
+        previous_run_id = ""
+        for run_id, url, name, message in errors:
+            if run_id != previous_run_id:
+                summary += f"\n\n- Run ID [{run_id}]({url})"
+                previous_run_id = run_id
+            summary += f"\n  - `{name}`\n    - `{message}`"
+        summary += "\n\n"
+
+    summary += "# Regression analysis\n\n"
 
     if not any(comparison.baseline_info for comparison in comparisons):
-        return _clean(
+        summary += _clean(
             f"""
             Conbench could not find a baseline run for contender commit `{sha}`. A
             baseline run needs to be on the default branch in the same repository, with
@@ -58,9 +105,9 @@ def regression_summary(
             cases.
             """
         )
+        return summary
 
-    regressions = benchmarks_with_z_regressions(comparisons)
-    summary = _clean(
+    summary += _clean(
         f"""
         Contender commit `{sha}` had {len(regressions)} regressions compared to its
         baseline commit.

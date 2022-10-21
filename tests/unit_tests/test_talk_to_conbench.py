@@ -47,4 +47,5 @@ def test_comparison_warns_when_no_baseline(conbench, caplog: LogCaptureFixture):
     assert comparisons[0].contender_link
     assert not comparisons[0].compare_link
     assert not comparisons[0].baseline_info
+    assert len(comparisons[0].benchmark_results) == 2
     assert "could not find a baseline run" in caplog.text

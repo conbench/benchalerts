@@ -48,15 +48,14 @@ def mock_comparisons(request: SubRequest):
 
     contender_info, contender_info_2 = _dup_info("GET_conbench_runs_some_contender")
     baseline_info, baseline_info_2 = _dup_info("GET_conbench_runs_some_baseline")
-    no_baseline_info, no_baseline_info_2 = _dup_info(
-        "GET_conbench_runs_contender_wo_base"
-    )
+    no_baseline_info = _response("GET_conbench_runs_contender_wo_base")
     compare_results_noregressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender_threshold_z_500"
     )
     compare_results_regressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender"
     )
+    benchmark_results = _response("GET_conbench_benchmarks_run_id_contender_wo_base")
 
     if how == "noregressions":
         return [
@@ -86,8 +85,9 @@ def mock_comparisons(request: SubRequest):
         ]
     elif how == "no_baseline":
         return [
-            RunComparison(contender_info=no_baseline_info),
-            RunComparison(contender_info=no_baseline_info_2),
+            RunComparison(
+                contender_info=no_baseline_info, benchmark_results=benchmark_results
+            ),
         ]
 
 
@@ -130,8 +130,8 @@ def test_benchmarks_with_z_regressions(mock_comparisons, expected):
 @pytest.mark.parametrize(
     ["mock_comparisons", "expected_md"],
     [
-        ("noregressions", "summary_noregressions_baselineisnotparent"),
-        ("regressions", "summary_regressions_baselineisnotparent"),
+        ("noregressions", "summary_noregressions"),
+        ("regressions", "summary_regressions"),
         ("no_baseline", "summary_nobaseline"),
     ],
     indirect=["mock_comparisons"],

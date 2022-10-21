@@ -38,11 +38,18 @@ class RunComparison:
         /compare/runs/{baseline_run_id}...{contender_run_id}, if a baseline run exists
         for this contender run. Contains a comparison for every case run to its
         baseline, including the statistics and regression analysis.
+    benchmark_results
+        The list returned from Conbench when hitting
+        /benchmarks?run_id={contender_run_id}, if the contender run has errors. Contains
+        info about each case in the contender run, including statistics and tracebacks.
+        Only used when a baseline run doesn't exist, because otherwise all this
+        information is already in the compare_results.
     """
 
     contender_info: dict
     baseline_info: Optional[dict] = None
     compare_results: Optional[List[dict]] = None
+    benchmark_results: Optional[List[dict]] = None
 
     @property
     def baseline_is_parent(self) -> Optional[bool]:
@@ -159,6 +166,11 @@ def get_comparison_to_baseline(
                 "same repository, with the same hardware and context, and have at "
                 "least one of the same benchmark cases."
             )
+            if run_comparison.contender_info["has_errors"]:
+                # get more information so we have more details about errors
+                run_comparison.benchmark_results = conbench.get(
+                    "/benchmarks/", params={"run_id": run_id}
+                )
 
         out_list.append(run_comparison)
 

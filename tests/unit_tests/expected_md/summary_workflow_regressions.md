@@ -1,3 +1,11 @@
+# Benchmark errors
+
+- Run ID [some_contender](http://localhost/compare/runs/some_baseline...some_contender/)
+  - `snappy, nyctaxi_sample, csv, arrow`
+    - `Something went wrong`
+
+# Regression analysis
+
 Contender commit `abc` had 1 regressions compared to its baseline commit.
 
 ### Benchmarks with regressions:
