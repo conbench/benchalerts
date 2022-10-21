@@ -16,7 +16,7 @@ import os
 
 import pytest
 
-from benchalerts.clients import ConbenchClient, GitHubRepoClient
+from benchalerts.clients import GitHubRepoClient
 
 
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
@@ -32,40 +32,3 @@ def test_create_pull_request_comment(github_auth: str):
         assert res["user"]["type"] == "User"
     elif github_auth == "app":
         assert res["user"]["type"] == "Bot"
-
-
-@pytest.mark.parametrize(
-    ["conbench_url", "commit", "expected_len", "expected_bip"],
-    [
-        (
-            "https://conbench.ursa.dev/",
-            "bc7de406564fa7b2bcb9bf055cbaba31ca0ca124",
-            8,
-            True,
-        ),
-        (
-            "https://velox-conbench.voltrondata.run",
-            "2319922d288c519baa3bffe59c0bedbcb6c827cd",
-            1,
-            False,
-        ),
-        (
-            "https://velox-conbench.voltrondata.run",
-            "b74e7045fade737e39b0f9867bc8b8b23fe00b78",
-            0,
-            False,
-        ),
-    ],
-)
-def test_get_comparison_to_baseline(
-    monkeypatch: pytest.MonkeyPatch, conbench_url, commit, expected_len, expected_bip
-):
-    monkeypatch.setenv("CONBENCH_URL", conbench_url)
-    cb = ConbenchClient()
-    res = cb.get_comparison_to_baseline(commit)
-    comparisons, baseline_is_parent = res
-    assert baseline_is_parent is expected_bip
-    assert len(comparisons) == expected_len
-    for comparison in comparisons.values():
-        for benchmark in comparison:
-            assert benchmark["contender_run_id"]

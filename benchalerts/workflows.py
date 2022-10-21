@@ -15,7 +15,7 @@
 import os
 from typing import Optional
 
-from .clients import ConbenchClient, GitHubRepoClient
+from .clients import CheckStatus, ConbenchClient, GitHubRepoClient, StatusState
 from .log import log
 from .parse_conbench import (
     _clean,
@@ -24,6 +24,7 @@ from .parse_conbench import (
     regression_details,
     regression_summary,
 )
+from .talk_to_conbench import get_comparison_to_baseline
 
 
 def update_github_status_based_on_regressions(
@@ -107,7 +108,7 @@ def update_github_status_based_on_regressions(
     # mark the task as pending
     update_status(
         description="Finding possible regressions",
-        state=github.StatusState.PENDING,
+        state=StatusState.PENDING,
         details_url=build_url,
     )
 
@@ -115,21 +116,21 @@ def update_github_status_based_on_regressions(
     # If anything in here fails, we can!
     try:
         conbench = conbench or ConbenchClient()
-        all_comparisons, _ = conbench.get_comparison_to_baseline(
-            contender_sha=contender_sha, z_score_threshold=z_score_threshold
+        comparisons = get_comparison_to_baseline(
+            conbench, contender_sha, z_score_threshold
         )
-        regressions = benchmarks_with_z_regressions(all_comparisons)
+        regressions = benchmarks_with_z_regressions(comparisons)
         log.info(f"Found the following regressions: {regressions}")
 
-        if not all_comparisons:
+        if not any(comparison.baseline_info for comparison in comparisons):
             desc = "Could not find any baseline runs to compare to"
-            state = github.StatusState.SUCCESS
+            state = StatusState.SUCCESS
         elif regressions:
             desc = f"There were {len(regressions)} benchmark regressions in this commit"
-            state = github.StatusState.FAILURE
+            state = StatusState.FAILURE
         else:
             desc = "There were no benchmark regressions in this commit"
-            state = github.StatusState.SUCCESS
+            state = StatusState.SUCCESS
 
         # point to the homepage table filtered to runs of this commit
         url = f"{os.environ['CONBENCH_URL']}/?search={contender_sha}"
@@ -138,7 +139,7 @@ def update_github_status_based_on_regressions(
     except Exception as e:
         update_status(
             description=f"Failed finding regressions: {e}",
-            state=github.StatusState.ERROR,
+            state=StatusState.ERROR,
             details_url=build_url,
         )
         log.error(f"Updated status with error: {e}")
@@ -231,7 +232,7 @@ def update_github_check_based_on_regressions(
 
     # mark the task as pending
     update_check(
-        status=github.CheckStatus.IN_PROGRESS,
+        status=CheckStatus.IN_PROGRESS,
         title="Finding possible regressions",
         summary=f"Analyzing `{contender_sha[:8]}` for regressions...",
         details=None,
@@ -242,19 +243,14 @@ def update_github_check_based_on_regressions(
     # If anything in here fails, we can!
     try:
         conbench = conbench or ConbenchClient()
-        all_comparisons, baseline_is_parent = conbench.get_comparison_to_baseline(
-            contender_sha=contender_sha, z_score_threshold=z_score_threshold
+        comparisons = get_comparison_to_baseline(
+            conbench, contender_sha, z_score_threshold
         )
-        regressions = benchmarks_with_z_regressions(all_comparisons)
+        regressions = benchmarks_with_z_regressions(comparisons)
 
-        status = regression_check_status(all_comparisons)
-        summary = regression_summary(
-            all_comparisons,
-            baseline_is_parent,
-            contender_sha,
-            warn_if_baseline_isnt_parent,
-        )
-        details = regression_details(all_comparisons)
+        status = regression_check_status(comparisons)
+        summary = regression_summary(comparisons, warn_if_baseline_isnt_parent)
+        details = regression_details(comparisons)
         # point to the homepage table filtered to runs of this commit
         url = f"{os.environ['CONBENCH_URL']}/?search={contender_sha}"
 
@@ -276,7 +272,7 @@ def update_github_check_based_on_regressions(
         )
         details = f"Error: `{repr(e)}`\n\nSee build link below."
         update_check(
-            status=github.CheckStatus.NEUTRAL,
+            status=CheckStatus.NEUTRAL,
             title="Error when finding regressions",
             summary=summary,
             details=details,

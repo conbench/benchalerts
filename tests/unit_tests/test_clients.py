@@ -16,7 +16,12 @@ import pytest
 import requests
 from _pytest.logging import LogCaptureFixture
 
-from benchalerts.clients import ConbenchClient, GitHubRepoClient
+from benchalerts.clients import (
+    CheckStatus,
+    ConbenchClient,
+    GitHubRepoClient,
+    StatusState,
+)
 
 from .mocks import MockAdapter
 
@@ -48,7 +53,7 @@ class TestGitHubRepoClient:
             commit_sha="abc",
             title="tests",
             description="Testing something",
-            state=self.gh.StatusState.SUCCESS,
+            state=StatusState.SUCCESS,
             details_url="https://conbench.biz/",
         )
         assert res["description"] == "Testing something"
@@ -68,11 +73,7 @@ class TestGitHubRepoClient:
         res = self.gh.update_check(
             name="tests",
             commit_sha="abc",
-            status=(
-                self.gh.CheckStatus.IN_PROGRESS
-                if in_progress
-                else self.gh.CheckStatus.SUCCESS
-            ),
+            status=CheckStatus.IN_PROGRESS if in_progress else CheckStatus.SUCCESS,
             title="This was good",
             summary="Testing something",
             details="Some details",
@@ -110,31 +111,6 @@ class TestConbenchClient:
     def test_conbench_fails_missing_env(self, missing_conbench_env):
         with pytest.raises(ValueError, match="CONBENCH_URL"):
             self.cb
-
-    @pytest.mark.parametrize("z_score_threshold", [None, 500])
-    def test_get_comparison_to_baseline(self, conbench_env, z_score_threshold):
-        output = self.cb.get_comparison_to_baseline("abc", z_score_threshold)
-        comparisons, baseline_is_parent = output
-        assert not baseline_is_parent
-        assert isinstance(comparisons, dict)
-        assert len(comparisons) == 1
-        key = "https://conbench.biz/api/compare/runs/some_baseline...some_contender"
-        assert isinstance(comparisons[key], list)
-        assert len(comparisons[key]) == 2
-
-    def test_comparison_fails_when_no_runs(self, conbench_env):
-        with pytest.raises(ValueError, match="runs"):
-            self.cb.get_comparison_to_baseline("no_runs")
-
-    def test_comparison_warns_when_no_baseline(
-        self, conbench_env, caplog: LogCaptureFixture
-    ):
-        comparisons, baseline_is_parent = self.cb.get_comparison_to_baseline(
-            "no_baseline"
-        )
-        assert not comparisons
-        assert not baseline_is_parent
-        assert "could not find a baseline run" in caplog.text
 
     @pytest.mark.parametrize("path", ["/error_with_content", "/error_without_content"])
     def test_client_error_handling(self, conbench_env, path, caplog: LogCaptureFixture):
