@@ -79,7 +79,10 @@ def check_posted_markdown(
         flows.update_github_check_based_on_regressions,
     ],
 )
-def test_flows(github_auth, conbench_env, z_score_threshold, workflow, caplog):
+def test_flows(
+    github_auth, conbench_env, z_score_threshold, workflow, caplog: LogCaptureFixture
+):
+    caplog.set_level("DEBUG")
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
 
@@ -110,7 +113,10 @@ def test_flows(github_auth, conbench_env, z_score_threshold, workflow, caplog):
         flows.update_github_check_based_on_regressions,
     ],
 )
-def test_flows_failure(github_auth, missing_conbench_env, workflow, caplog):
+def test_flows_failure(
+    github_auth, missing_conbench_env, workflow, caplog: LogCaptureFixture
+):
+    caplog.set_level("DEBUG")
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
 
     with pytest.raises(ValueError, match="not found"):
@@ -132,7 +138,10 @@ def test_flows_failure(github_auth, missing_conbench_env, workflow, caplog):
         flows.update_github_check_based_on_regressions,
     ],
 )
-def test_flows_no_baseline(github_auth, conbench_env, workflow, caplog):
+def test_flows_no_baseline(
+    github_auth, conbench_env, workflow, caplog: LogCaptureFixture
+):
+    caplog.set_level("DEBUG")
     gh = GitHubRepoClient("some/repo", adapter=MockAdapter())
     cb = ConbenchClient(adapter=MockAdapter())
 
