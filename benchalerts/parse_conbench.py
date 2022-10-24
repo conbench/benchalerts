@@ -24,7 +24,9 @@ def _clean(text: str) -> str:
     return textwrap.fill(textwrap.dedent(text), 10000).replace("  ", "\n\n").strip()
 
 
-def benchmarks_with_errors(comparisons: List[RunComparison]) -> List[Tuple[str, str]]:
+def benchmarks_with_errors(
+    comparisons: List[RunComparison],
+) -> List[Tuple[str, str, str, str]]:
     """Find the run IDs, webapp links, display names, and error messages of benchmark
     cases that had errors."""
     out = []
