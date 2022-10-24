@@ -15,4 +15,4 @@
 
 # Please do not add anything else to this file except __version__
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
