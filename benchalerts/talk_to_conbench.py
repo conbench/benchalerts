@@ -74,6 +74,15 @@ class RunComparison:
             # self._compare_path has a leading slash already
             return f"{self._app_url}{self._compare_path}"
 
+    def case_link(self, case_id: str) -> str:
+        """Get the link to a specific benchmark case result in the webapp."""
+        return f"{self._app_url}/benchmarks/{case_id}"
+
+    @property
+    def has_errors(self) -> bool:
+        """Whether this run has any benchmark errors."""
+        return self.contender_info["has_errors"]
+
     @property
     def contender_id(self) -> str:
         """The contender run_id."""
@@ -166,7 +175,7 @@ def get_comparison_to_baseline(
                 "same repository, with the same hardware and context, and have at "
                 "least one of the same benchmark cases."
             )
-            if run_comparison.contender_info["has_errors"]:
+            if run_comparison.has_errors:
                 # get more information so we have more details about errors
                 run_comparison.benchmark_results = conbench.get(
                     "/benchmarks/", params={"run_id": run_id}

@@ -27,7 +27,7 @@ def _clean(text: str) -> str:
 def benchmarks_with_errors(
     comparisons: List[RunComparison],
 ) -> List[Tuple[str, str, str, str]]:
-    """Find the run IDs, webapp links, display names, and error messages of benchmark
+    """Find the run IDs, webapp links, display names, and case URLs of benchmark
     cases that had errors."""
     out = []
 
@@ -38,7 +38,7 @@ def benchmarks_with_errors(
                     comparison.contender_id,
                     comparison.compare_link,
                     case["benchmark"],
-                    case["contender_error"]["message"],
+                    comparison.case_link(case["contender_id"]),
                 )
                 for case in comparison.compare_results
                 if case["contender_error"]
@@ -49,7 +49,7 @@ def benchmarks_with_errors(
                     comparison.contender_id,
                     comparison.contender_link,
                     case["tags"].get("name", str(case["tags"])),
-                    case["error"]["message"],
+                    comparison.case_link(case["id"]),
                 )
                 for case in comparison.benchmark_results or []
                 if case["error"]
@@ -60,16 +60,21 @@ def benchmarks_with_errors(
 
 def benchmarks_with_z_regressions(
     comparisons: List[RunComparison],
-) -> List[Tuple[str, str, str]]:
-    """Find the run IDs, webapp links, and display names of benchmark cases whose
-    z-scores were extreme enough to constitute a regression.
+) -> List[Tuple[str, str, str, str]]:
+    """Find the run IDs, webapp links, display names, and case URLs of benchmark
+    cases whose z-scores were extreme enough to constitute a regression.
     """
     out = []
 
     for comparison in comparisons:
         compare_results = comparison.compare_results or []
         out += [
-            (comparison.contender_id, comparison.compare_link, case["benchmark"])
+            (
+                comparison.contender_id,
+                comparison.compare_link,
+                case["benchmark"],
+                comparison.case_link(case["contender_id"]),
+            )
             for case in compare_results
             if case["contender_z_regression"]
         ]
@@ -87,16 +92,24 @@ def regression_summary(
     summary = ""
 
     if errors:
-        summary += "# Benchmark errors"
+        summary += _clean(
+            """
+            ## Benchmarks with errors
+
+            These are errors that were caught while running the benchmarks. You can
+            click the link next to each case to go to the Conbench entry for that
+            benchmark, which might have more information about what the error was.
+            """
+        )
         previous_run_id = ""
-        for run_id, url, name, message in errors:
+        for run_id, run_url, name, error_url in errors:
             if run_id != previous_run_id:
-                summary += f"\n\n- Run ID [{run_id}]({url})"
+                summary += f"\n\n- Run ID [{run_id}]({run_url})"
                 previous_run_id = run_id
-            summary += f"\n  - `{name}`\n    - `{message}`"
+            summary += f"\n  - `{name}` ([link]({error_url}))"
         summary += "\n\n"
 
-    summary += "# Regression analysis\n\n"
+    summary += "## Benchmarks with performance regressions\n\n"
 
     if not any(comparison.baseline_info for comparison in comparisons):
         summary += _clean(
@@ -111,19 +124,19 @@ def regression_summary(
 
     summary += _clean(
         f"""
-        Contender commit `{sha}` had {len(regressions)} regressions compared to its
-        baseline commit.
+        Contender commit `{sha}` had {len(regressions)} performance regressions compared
+        to its baseline commit.
         """
     )
 
     if regressions:
         summary += "\n\n### Benchmarks with regressions:"
         previous_compare_url = ""
-        for run_id, compare_url, benchmark in regressions:
+        for run_id, compare_url, benchmark, case_url in regressions:
             if compare_url != previous_compare_url:
                 summary += f"\n\n- Run ID [{run_id}]({compare_url})"
                 previous_compare_url = compare_url
-            summary += f"\n  - `{benchmark}`"
+            summary += f"\n  - `{benchmark}` ([link]({case_url}))"
 
     if (
         any(not comparison.baseline_is_parent for comparison in comparisons)
@@ -166,6 +179,9 @@ def regression_check_status(
     """Return a different status based on regressions."""
     regressions = benchmarks_with_z_regressions(comparisons)
 
+    if any(comparison.has_errors for comparison in comparisons):
+        # has errors
+        return CheckStatus.ACTION_REQUIRED
     if not any(comparison.baseline_info for comparison in comparisons):
         # no baseline runs found
         return CheckStatus.SKIPPED
