@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import textwrap
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List
 
 from .clients import CheckStatus
 from .talk_to_conbench import RunComparison
@@ -24,60 +25,92 @@ def _clean(text: str) -> str:
     return textwrap.fill(textwrap.dedent(text), 10000).replace("  ", "\n\n").strip()
 
 
-def benchmarks_with_errors(
-    comparisons: List[RunComparison],
-) -> List[Tuple[str, str, str, str]]:
-    """Find the run IDs, webapp links, display names, and case URLs of benchmark
-    cases that had errors."""
+@dataclass
+class _CaseInfo:
+    run_id: str
+    run_reason: str
+    run_time: str
+    run_link: str
+    case_name: str
+    case_link: str
+
+    @property
+    def Run_Reason(self):
+        return self.run_reason.title()
+
+
+def _list_cases(case_infos: List[_CaseInfo]) -> str:
+    """Create a Markdown list of case information."""
+    out = ""
+    previous_run_id = ""
+
+    for case in case_infos:
+        if case.run_id != previous_run_id:
+            out += f"\n\n- {case.Run_Reason} Run at [{case.run_time}]({case.run_link})"
+            previous_run_id = case.run_id
+        out += f"\n  - [{case.case_name}]({case.case_link})"
+
+    if out:
+        out += "\n\n"
+
+    return out
+
+
+def benchmarks_with_errors(comparisons: List[RunComparison]) -> List[_CaseInfo]:
+    """Find information about benchmark cases that had errors."""
     out = []
 
     for comparison in comparisons:
         if comparison.compare_results:
             out += [
-                (
-                    comparison.contender_id,
-                    comparison.compare_link,
-                    case["benchmark"],
-                    comparison.case_link(case["contender_id"]),
+                _CaseInfo(
+                    run_id=comparison.contender_id,
+                    run_reason=comparison.contender_reason,
+                    run_time=comparison.contender_datetime,
+                    run_link=comparison.compare_link,
+                    case_name=case["benchmark"],
+                    case_link=comparison.case_link(case["contender_id"]),
                 )
                 for case in comparison.compare_results
                 if case["contender_error"]
             ]
-        else:
+        elif comparison.benchmark_results:
             out += [
-                (
-                    comparison.contender_id,
-                    comparison.contender_link,
-                    case["tags"].get("name", str(case["tags"])),
-                    comparison.case_link(case["id"]),
+                _CaseInfo(
+                    run_id=comparison.contender_id,
+                    run_reason=comparison.contender_reason,
+                    run_time=comparison.contender_datetime,
+                    run_link=comparison.contender_link,
+                    case_name=case["tags"].get("name", str(case["tags"])),
+                    case_link=comparison.case_link(case["id"]),
                 )
-                for case in comparison.benchmark_results or []
+                for case in comparison.benchmark_results
                 if case["error"]
             ]
 
     return out
 
 
-def benchmarks_with_z_regressions(
-    comparisons: List[RunComparison],
-) -> List[Tuple[str, str, str, str]]:
-    """Find the run IDs, webapp links, display names, and case URLs of benchmark
-    cases whose z-scores were extreme enough to constitute a regression.
+def benchmarks_with_z_regressions(comparisons: List[RunComparison]) -> List[_CaseInfo]:
+    """Find information about benchmark cases whose z-scores were extreme enough to
+    constitute a regression.
     """
     out = []
 
     for comparison in comparisons:
-        compare_results = comparison.compare_results or []
-        out += [
-            (
-                comparison.contender_id,
-                comparison.compare_link,
-                case["benchmark"],
-                comparison.case_link(case["contender_id"]),
-            )
-            for case in compare_results
-            if case["contender_z_regression"]
-        ]
+        if comparison.compare_results:
+            out += [
+                _CaseInfo(
+                    run_id=comparison.contender_id,
+                    run_reason=comparison.contender_reason,
+                    run_time=comparison.contender_datetime,
+                    run_link=comparison.compare_link,
+                    case_name=case["benchmark"],
+                    case_link=comparison.case_link(case["contender_id"]),
+                )
+                for case in comparison.compare_results
+                if case["contender_z_regression"]
+            ]
 
     return out
 
@@ -101,13 +134,7 @@ def regression_summary(
             benchmark, which might have more information about what the error was.
             """
         )
-        previous_run_id = ""
-        for run_id, run_url, name, error_url in errors:
-            if run_id != previous_run_id:
-                summary += f"\n\n- Run ID [{run_id}]({run_url})"
-                previous_run_id = run_id
-            summary += f"\n  - `{name}` ([link]({error_url}))"
-        summary += "\n\n"
+        summary += _list_cases(errors)
 
     summary += "## Benchmarks with performance regressions\n\n"
 
@@ -124,25 +151,21 @@ def regression_summary(
 
     summary += _clean(
         f"""
-        Contender commit `{sha}` had {len(regressions)} performance regressions compared
-        to its baseline commit.
+        Contender commit `{sha}` had {len(regressions)} performance regression(s)
+        compared to its baseline commit.
         """
     )
+    summary += "\n\n"
 
     if regressions:
-        summary += "\n\n### Benchmarks with regressions:"
-        previous_compare_url = ""
-        for run_id, compare_url, benchmark, case_url in regressions:
-            if compare_url != previous_compare_url:
-                summary += f"\n\n- Run ID [{run_id}]({compare_url})"
-                previous_compare_url = compare_url
-            summary += f"\n  - `{benchmark}` ([link]({case_url}))"
+        summary += "### Benchmarks with regressions:"
+        summary += _list_cases(regressions)
 
     if (
         any(not comparison.baseline_is_parent for comparison in comparisons)
         and warn_if_baseline_isnt_parent
     ):
-        summary += "\n\n" + _clean(
+        summary += _clean(
             """
             ### Note
 
@@ -161,7 +184,7 @@ def regression_details(comparisons: List[RunComparison]) -> str:
 
     z_score_threshold = comparisons[0].compare_results[0]["threshold_z"]
     details = _clean(
-        f"""\
+        f"""
         Conbench has details about {len(comparisons)} total run(s) on this commit.
 
         This report was generated using a z-score threshold of {z_score_threshold}. A
@@ -176,7 +199,7 @@ def regression_details(comparisons: List[RunComparison]) -> str:
 def regression_check_status(
     comparisons: List[RunComparison],
 ) -> CheckStatus:
-    """Return a different status based on regressions."""
+    """Return a different status based on errors and regressions."""
     regressions = benchmarks_with_z_regressions(comparisons)
 
     if any(comparison.has_errors for comparison in comparisons):

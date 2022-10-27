@@ -63,6 +63,17 @@ class RunComparison:
             )
 
     @property
+    def contender_reason(self) -> str:
+        """The contender run reason."""
+        return self.contender_info["reason"]
+
+    @property
+    def contender_datetime(self) -> str:
+        """The contender run datetime."""
+        dt: str = self.contender_info["timestamp"]
+        return dt.replace("T", " ")
+
+    @property
     def contender_link(self) -> str:
         """The link to the contender run page in the webapp."""
         return f"{self._app_url}/runs/{self.contender_id}"

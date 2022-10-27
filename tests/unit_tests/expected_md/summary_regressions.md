@@ -1,24 +1,24 @@
-# Benchmark errors
+## Benchmarks with errors
 
-- Run ID [some_contender](http://localhost/compare/runs/some_baseline...some_contender/)
-  - `snappy, nyctaxi_sample, csv, arrow`
-    - `Something went wrong`
+These are errors that were caught while running the benchmarks. You can click the link next to each case to go to the Conbench entry for that benchmark, which might have more information about what the error was.
 
-- Run ID [some_contender_2](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
-  - `snappy, nyctaxi_sample, csv, arrow`
-    - `Something went wrong`
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline...some_contender/)
+  - [snappy, nyctaxi_sample, csv, arrow](http://localhost/benchmarks/some-benchmark-uuid-4)
 
-# Regression analysis
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
+  - [snappy, nyctaxi_sample, csv, arrow](http://localhost/benchmarks/some-benchmark-uuid-4)
 
-Contender commit `abc` had 2 regressions compared to its baseline commit.
+## Benchmarks with performance regressions
+
+Contender commit `abc` had 2 performance regression(s) compared to its baseline commit.
 
 ### Benchmarks with regressions:
 
-- Run ID [some_contender](http://localhost/compare/runs/some_baseline...some_contender/)
-  - `snappy, nyctaxi_sample, parquet, arrow`
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline...some_contender/)
+  - [snappy, nyctaxi_sample, parquet, arrow](http://localhost/benchmarks/some-benchmark-uuid-3)
 
-- Run ID [some_contender_2](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
-  - `snappy, nyctaxi_sample, parquet, arrow`
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
+  - [snappy, nyctaxi_sample, parquet, arrow](http://localhost/benchmarks/some-benchmark-uuid-3)
 
 ### Note
 
