@@ -20,6 +20,7 @@ from _pytest.fixtures import SubRequest
 
 from benchalerts.clients import CheckStatus
 from benchalerts.parse_conbench import (
+    benchmarks_with_errors,
     benchmarks_with_z_regressions,
     regression_check_status,
     regression_details,
@@ -48,15 +49,14 @@ def mock_comparisons(request: SubRequest):
 
     contender_info, contender_info_2 = _dup_info("GET_conbench_runs_some_contender")
     baseline_info, baseline_info_2 = _dup_info("GET_conbench_runs_some_baseline")
-    no_baseline_info, no_baseline_info_2 = _dup_info(
-        "GET_conbench_runs_contender_wo_base"
-    )
+    no_baseline_info = _response("GET_conbench_runs_contender_wo_base")
     compare_results_noregressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender_threshold_z_500"
     )
     compare_results_regressions = _response(
         "GET_conbench_compare_runs_some_baseline_some_contender"
     )
+    benchmark_results = _response("GET_conbench_benchmarks_run_id_contender_wo_base")
 
     if how == "noregressions":
         return [
@@ -84,10 +84,19 @@ def mock_comparisons(request: SubRequest):
                 compare_results=compare_results_regressions,
             ),
         ]
+    elif how == "no_baseline_without_errors":
+        no_baseline_info["has_errors"] = False
+        benchmark_results[1]["error"] = None
+        return [
+            RunComparison(
+                contender_info=no_baseline_info, benchmark_results=benchmark_results
+            ),
+        ]
     elif how == "no_baseline":
         return [
-            RunComparison(contender_info=no_baseline_info),
-            RunComparison(contender_info=no_baseline_info_2),
+            RunComparison(
+                contender_info=no_baseline_info, benchmark_results=benchmark_results
+            ),
         ]
 
 
@@ -100,38 +109,40 @@ def get_expected_markdown(filename: str) -> str:
 
 
 @pytest.mark.parametrize(
-    ["mock_comparisons", "expected"],
+    ["mock_comparisons", "expected_len"],
     [
-        ("noregressions", []),
-        (
-            "regressions",
-            [
-                (
-                    "some_contender",
-                    "http://localhost/compare/runs/some_baseline...some_contender/",
-                    "snappy, nyctaxi_sample, parquet, arrow",
-                ),
-                (
-                    "some_contender_2",
-                    "http://localhost/compare/runs/some_baseline_2...some_contender_2/",
-                    "snappy, nyctaxi_sample, parquet, arrow",
-                ),
-            ],
-        ),
-        ("no_baseline", []),
+        ("noregressions", 2),
+        ("regressions", 2),
+        ("no_baseline", 1),
+        ("no_baseline_without_errors", 0),
     ],
     indirect=["mock_comparisons"],
 )
-def test_benchmarks_with_z_regressions(mock_comparisons, expected):
+def test_benchmarks_with_errors(mock_comparisons, expected_len):
+    actual = benchmarks_with_errors(mock_comparisons)
+    assert len(actual) == expected_len
+
+
+@pytest.mark.parametrize(
+    ["mock_comparisons", "expected_len"],
+    [
+        ("noregressions", 0),
+        ("regressions", 2),
+        ("no_baseline", 0),
+        ("no_baseline_without_errors", 0),
+    ],
+    indirect=["mock_comparisons"],
+)
+def test_benchmarks_with_z_regressions(mock_comparisons, expected_len):
     actual = benchmarks_with_z_regressions(mock_comparisons)
-    assert actual == expected
+    assert len(actual) == expected_len
 
 
 @pytest.mark.parametrize(
     ["mock_comparisons", "expected_md"],
     [
-        ("noregressions", "summary_noregressions_baselineisnotparent"),
-        ("regressions", "summary_regressions_baselineisnotparent"),
+        ("noregressions", "summary_noregressions"),
+        ("regressions", "summary_regressions"),
         ("no_baseline", "summary_nobaseline"),
     ],
     indirect=["mock_comparisons"],
@@ -150,6 +161,7 @@ def test_regression_summary(mock_comparisons, expected_md):
         ("noregressions", "details_noregressions"),
         ("regressions", "details_regressions"),
         ("no_baseline", None),
+        ("no_baseline_without_errors", None),
     ],
     indirect=["mock_comparisons"],
 )
@@ -169,7 +181,8 @@ def test_regression_details(mock_comparisons, expected_md):
     [
         ("noregressions", CheckStatus.SUCCESS),
         ("regressions", CheckStatus.FAILURE),
-        ("no_baseline", CheckStatus.SKIPPED),
+        ("no_baseline", CheckStatus.ACTION_REQUIRED),
+        ("no_baseline_without_errors", CheckStatus.SKIPPED),
     ],
     indirect=["mock_comparisons"],
 )

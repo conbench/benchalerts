@@ -38,11 +38,18 @@ class RunComparison:
         /compare/runs/{baseline_run_id}...{contender_run_id}, if a baseline run exists
         for this contender run. Contains a comparison for every case run to its
         baseline, including the statistics and regression analysis.
+    benchmark_results
+        The list returned from Conbench when hitting
+        /benchmarks?run_id={contender_run_id}, if the contender run has errors. Contains
+        info about each case in the contender run, including statistics and tracebacks.
+        Only used when a baseline run doesn't exist, because otherwise all this
+        information is already in the compare_results.
     """
 
     contender_info: dict
     baseline_info: Optional[dict] = None
     compare_results: Optional[List[dict]] = None
+    benchmark_results: Optional[List[dict]] = None
 
     @property
     def baseline_is_parent(self) -> Optional[bool]:
@@ -56,6 +63,17 @@ class RunComparison:
             )
 
     @property
+    def contender_reason(self) -> str:
+        """The contender run reason."""
+        return self.contender_info["reason"]
+
+    @property
+    def contender_datetime(self) -> str:
+        """The contender run datetime."""
+        dt: str = self.contender_info["timestamp"]
+        return dt.replace("T", " ")
+
+    @property
     def contender_link(self) -> str:
         """The link to the contender run page in the webapp."""
         return f"{self._app_url}/runs/{self.contender_id}"
@@ -66,6 +84,15 @@ class RunComparison:
         if self._compare_path:
             # self._compare_path has a leading slash already
             return f"{self._app_url}{self._compare_path}"
+
+    def case_link(self, case_id: str) -> str:
+        """Get the link to a specific benchmark case result in the webapp."""
+        return f"{self._app_url}/benchmarks/{case_id}"
+
+    @property
+    def has_errors(self) -> bool:
+        """Whether this run has any benchmark errors."""
+        return self.contender_info["has_errors"]
 
     @property
     def contender_id(self) -> str:
@@ -159,6 +186,11 @@ def get_comparison_to_baseline(
                 "same repository, with the same hardware and context, and have at "
                 "least one of the same benchmark cases."
             )
+            if run_comparison.has_errors:
+                # get more information so we have more details about errors
+                run_comparison.benchmark_results = conbench.get(
+                    "/benchmarks/", params={"run_id": run_id}
+                )
 
         out_list.append(run_comparison)
 

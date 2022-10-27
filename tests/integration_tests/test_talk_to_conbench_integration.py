@@ -42,6 +42,13 @@ from benchalerts.talk_to_conbench import get_comparison_to_baseline
             1,
             None,
         ),
+        # errors
+        (
+            "https://conbench.ursa.dev",
+            "9fa34df27eb1445ac11b0ab0298d421b04be80f7",
+            7,
+            True,
+        ),
     ],
 )
 def test_get_comparison_to_baseline(

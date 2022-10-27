@@ -215,11 +215,11 @@ def update_github_check_based_on_regressions(
     github = github or GitHubRepoClient(repo=repo)
 
     def update_check(status, title, summary, details, details_url):
-        """Shortcut for updating the "Conbench regression analysis" check on the given
+        """Shortcut for updating the "Conbench performance report" check on the given
         SHA, with debug logging.
         """
         res = github.update_check(
-            name="Conbench regression analysis",
+            name="Conbench performance report",
             commit_sha=contender_sha,
             status=status,
             title=title,
@@ -233,7 +233,7 @@ def update_github_check_based_on_regressions(
     # mark the task as pending
     update_check(
         status=CheckStatus.IN_PROGRESS,
-        title="Finding possible regressions",
+        title="Analyzing performance",
         summary=f"Analyzing `{contender_sha[:8]}` for regressions...",
         details=None,
         details_url=build_url,
@@ -251,12 +251,16 @@ def update_github_check_based_on_regressions(
         status = regression_check_status(comparisons)
         summary = regression_summary(comparisons, warn_if_baseline_isnt_parent)
         details = regression_details(comparisons)
+        if any(comparison.has_errors for comparison in comparisons):
+            title = "Some benchmarks had errors"
+        else:
+            title = f"Found {len(regressions)} regression(s)"
         # point to the homepage table filtered to runs of this commit
         url = f"{os.environ['CONBENCH_URL']}/?search={contender_sha}"
 
         return update_check(
             status=status,
-            title=f"Found {len(regressions)} regression(s)",
+            title=title,
             summary=summary,
             details=details,
             details_url=url,
@@ -273,7 +277,7 @@ def update_github_check_based_on_regressions(
         details = f"Error: `{repr(e)}`\n\nSee build link below."
         update_check(
             status=CheckStatus.NEUTRAL,
-            title="Error when finding regressions",
+            title="Error when analyzing performance",
             summary=summary,
             details=details,
             details_url=build_url,

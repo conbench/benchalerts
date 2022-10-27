@@ -22,6 +22,15 @@ from benchalerts.clients import GitHubRepoClient
 
 
 @pytest.mark.parametrize(
+    "arrow_commit",
+    [
+        # no errors
+        "13a7b605ede88ca15b053f119909c48d0919c6f8",
+        # errors
+        "9fa34df27eb1445ac11b0ab0298d421b04be80f7",
+    ],
+)
+@pytest.mark.parametrize(
     "workflow",
     [
         flows.update_github_status_based_on_regressions,
@@ -31,11 +40,21 @@ from benchalerts.clients import GitHubRepoClient
 @pytest.mark.parametrize("github_auth", ["pat", "app"], indirect=True)
 @pytest.mark.parametrize("z_score_threshold", [None, 500])
 def test_update_github_status_based_on_regressions(
-    monkeypatch: pytest.MonkeyPatch, github_auth: str, z_score_threshold, workflow
+    monkeypatch: pytest.MonkeyPatch,
+    github_auth: str,
+    z_score_threshold,
+    workflow,
+    arrow_commit: str,
 ):
     """While this test is running, you can watch
     https://github.com/conbench/benchalerts/pull/5 to see the statuses change!
     """
+    if (
+        workflow == flows.update_github_status_based_on_regressions
+        and not arrow_commit.startswith("13a")
+    ):
+        pytest.skip("Skipping redundant tests to cut down on test time")
+
     if (
         workflow == flows.update_github_check_based_on_regressions
         and github_auth == "pat"
@@ -48,7 +67,6 @@ def test_update_github_status_based_on_regressions(
     test_status_commit = "4b9543876e8c1cee54c56980c3b2363aad71a8d4"
 
     arrow_conbench_url = "https://conbench.ursa.dev/"
-    arrow_commit = "13a7b605ede88ca15b053f119909c48d0919c6f8"
 
     github_run_id = os.getenv("GITHUB_RUN_ID", "2974120883")
     build_url = f"https://github.com/{test_status_repo}/actions/runs/{github_run_id}"
@@ -91,7 +109,9 @@ def test_update_github_status_based_on_regressions(
             assert res["creator"]["type"] == "Bot"
 
     elif workflow == flows.update_github_check_based_on_regressions:
-        if z_score_threshold is None:
+        if arrow_commit.startswith("9fa"):
+            assert res["conclusion"] == "action_required"
+        elif z_score_threshold is None:
             assert res["conclusion"] == "failure"
         else:
             assert res["conclusion"] == "success"

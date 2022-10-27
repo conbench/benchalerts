@@ -5,13 +5,19 @@ These are errors that were caught while running the benchmarks. You can click th
 - Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline...some_contender/)
   - [snappy, nyctaxi_sample, csv, arrow](http://localhost/benchmarks/some-benchmark-uuid-4)
 
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
+  - [snappy, nyctaxi_sample, csv, arrow](http://localhost/benchmarks/some-benchmark-uuid-4)
+
 ## Benchmarks with performance regressions
 
-Contender commit `abc` had 1 performance regression(s) compared to its baseline commit.
+Contender commit `abc` had 2 performance regression(s) compared to its baseline commit.
 
 ### Benchmarks with regressions:
 
 - Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline...some_contender/)
+  - [snappy, nyctaxi_sample, parquet, arrow](http://localhost/benchmarks/some-benchmark-uuid-3)
+
+- Some Run Reason Run at [2021-02-04 17:22:05.225583](http://localhost/compare/runs/some_baseline_2...some_contender_2/)
   - [snappy, nyctaxi_sample, parquet, arrow](http://localhost/benchmarks/some-benchmark-uuid-3)
 
 ### Note
